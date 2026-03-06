@@ -1,0 +1,119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id             String          @id @default(uuid())
+  name           String
+  slug           String          @unique
+  logoPath       String?
+  planStatus     PlanStatus      @default(ACTIVE)
+  subscriptionId String?
+  
+  users          User[]
+  products       Product[]
+  sales          Sale[]
+  bookings       Booking[]
+  stockMovements StockMovement[]
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  role       UserRole @default(VENDEDOR)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Product {
+  id         String   @id @default(uuid())
+  name       String
+  sku        String?
+  category   String?
+  cost       Decimal  @db.Decimal(10, 2)
+  price      Decimal  @db.Decimal(10, 2)
+  stock      Int      @default(0)
+  minStock   Int      @default(0)
+  isPublic   Boolean  @default(false)
+  
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  stockMovements StockMovement[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model StockMovement {
+  id         String       @id @default(uuid())
+  type       MovementType
+  quantity   Int
+  reason     String?
+  
+  productId  String
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  businessId String
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime     @default(now())
+}
+
+model Sale {
+  id            String   @id @default(uuid())
+  total         Decimal  @db.Decimal(10, 2)
+  paymentMethod String
+  
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Booking {
+  id         String        @id @default(uuid())
+  clientName String
+  dateTime   DateTime
+  status     BookingStatus @default(PENDING)
+  
+  businessId String
+  business   Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+enum PlanStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum UserRole {
+  ADMIN
+  VENDEDOR
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
