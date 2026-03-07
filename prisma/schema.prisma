@@ -30,6 +30,7 @@ model User {
   email      String   @unique
   password   String
   role       UserRole @default(VENDEDOR)
+  isActive   Boolean  @default(true)
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   
