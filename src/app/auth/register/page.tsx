@@ -8,7 +8,7 @@ import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const registerSchema = z.object({
     businessName: z.string().min(2, "Mínimo 2 caracteres"),
@@ -19,9 +19,8 @@ const registerSchema = z.object({
 export default function RegisterPage() {
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | undefined>();
-    const [success, setSuccess] = useState<string | undefined>();
 
-    const { register, handleSubmit, formState: { errors }, reset } = useForm<z.infer<typeof registerSchema>>({
+    const { register, handleSubmit, formState: { errors } } = useForm<z.infer<typeof registerSchema>>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
             businessName: "",
@@ -32,17 +31,13 @@ export default function RegisterPage() {
 
     const onSubmit = (values: z.infer<typeof registerSchema>) => {
         setError(undefined);
-        setSuccess(undefined);
 
         startTransition(() => {
             registerAction(values).then((data) => {
                 if (data?.error) {
                     setError(data.error);
                 }
-                if (data?.success) {
-                    setSuccess(data.success);
-                    reset(); // Clear the form on success
-                }
+                // On success, the server action auto-redirects to /dashboard?registered=true
             });
         });
     };
@@ -52,7 +47,7 @@ export default function RegisterPage() {
             <Card className="w-full max-w-md shadow-xl border-zinc-200">
                 <CardHeader className="space-y-1 text-center">
                     <CardTitle className="text-2xl font-black tracking-tighter text-zinc-900 overflow-hidden">
-                        Únete a Galape App
+                        Únete a Stockeado
                     </CardTitle>
                     <CardDescription>
                         Crea tu negocio y empieza a gestionar tu stock hoy mismo
@@ -64,12 +59,6 @@ export default function RegisterPage() {
                             <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
                                 <AlertCircle className="h-5 w-5 shrink-0" />
                                 {error}
-                            </div>
-                        )}
-                        {success && (
-                            <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">
-                                <CheckCircle2 className="h-5 w-5 shrink-0" />
-                                {success}
                             </div>
                         )}
 
@@ -90,13 +79,13 @@ export default function RegisterPage() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-700" htmlFor="email">
-                                    Email Administrador
+                                    Email del Dueño
                                 </label>
                                 <Input
                                     {...register("email")}
                                     id="email"
                                     type="email"
-                                    placeholder="admin@ejemplo.com"
+                                    placeholder="dueño@ejemplo.com"
                                     disabled={isPending}
                                     className={errors.email ? "border-red-500 focus-visible:ring-red-500" : "bg-white"}
                                 />
@@ -105,7 +94,7 @@ export default function RegisterPage() {
 
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-700" htmlFor="password">
-                                    Contraseña maestra
+                                    Contraseña
                                 </label>
                                 <Input
                                     {...register("password")}
@@ -124,7 +113,14 @@ export default function RegisterPage() {
                             className="w-full h-12 bg-zinc-900 text-zinc-50 hover:bg-zinc-800 text-base font-bold transition-all shadow-md active:scale-[0.98]"
                             disabled={isPending}
                         >
-                            {isPending ? "Creando cuenta..." : "Comenzar gratis"}
+                            {isPending ? (
+                                <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Creando cuenta...
+                                </span>
+                            ) : (
+                                "Comenzar gratis"
+                            )}
                         </Button>
                     </form>
 

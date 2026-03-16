@@ -18,8 +18,10 @@ model Business {
   users          User[]
   products       Product[]
   sales          Sale[]
+  purchases      Purchase[]
   bookings       Booking[]
   stockMovements StockMovement[]
+  fixedExpenses  FixedExpense[]
   
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -29,7 +31,7 @@ model User {
   id         String   @id @default(uuid())
   email      String   @unique
   password   String
-  role       UserRole @default(VENDEDOR)
+  role       UserRole @default(SELLER)
   isActive   Boolean  @default(true)
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -48,11 +50,14 @@ model Product {
   stock      Int      @default(0)
   minStock   Int      @default(0)
   isPublic   Boolean  @default(false)
+  isDeleted  Boolean  @default(false)
   
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   
   stockMovements StockMovement[]
+  saleItems      SaleItem[]
+  purchaseItems  PurchaseItem[]
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -74,15 +79,30 @@ model StockMovement {
 }
 
 model Sale {
-  id            String   @id @default(uuid())
-  total         Decimal  @db.Decimal(10, 2)
+  id            String     @id @default(uuid())
+  total         Decimal    @db.Decimal(10, 2)
   paymentMethod String
-  
+  notes         String?
+
+  items         SaleItem[]
+
   businessId    String
-  business      Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  business      Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+}
+
+model SaleItem {
+  id          String  @id @default(uuid())
+  quantity    Int
+  unitPrice   Decimal @db.Decimal(10, 2)
+
+  saleId      String
+  sale        Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Booking {
@@ -98,6 +118,33 @@ model Booking {
   updatedAt  DateTime      @updatedAt
 }
 
+model Purchase {
+  id            String         @id @default(uuid())
+  total         Decimal        @db.Decimal(10, 2)
+  supplierName  String?        
+  notes         String?
+  
+  items         PurchaseItem[]
+  
+  businessId    String
+  business      Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id          String  @id @default(uuid())
+  quantity    Int
+  unitCost    Decimal @db.Decimal(10, 2) 
+  
+  purchaseId  String
+  purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
 enum PlanStatus {
   ACTIVE
   INACTIVE
@@ -105,7 +152,8 @@ enum PlanStatus {
 
 enum UserRole {
   ADMIN
-  VENDEDOR
+  OWNER
+  SELLER
 }
 
 enum MovementType {
@@ -117,4 +165,32 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+enum ExpenseCategory {
+  LUZ
+  GAS
+  INTERNET
+  ALQUILER
+  AGUA
+  SUELDOS
+  IMPUESTOS
+  OTROS
+}
+
+model FixedExpense {
+  id          String          @id @default(uuid())
+  description String
+  amount      Decimal         @db.Decimal(10, 2)
+  category    ExpenseCategory
+  dueDate     DateTime
+  isPaid      Boolean         @default(false)
+  paidAt      DateTime?       
+  isDeleted   Boolean         @default(false)
+  
+  businessId  String
+  business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }

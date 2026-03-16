@@ -15,7 +15,7 @@ import { useEffect } from "react";
 const schema = z.object({
     email: z.string().email("Email inválido"),
     password: z.string().min(6, "Mínimo 6 caracteres"),
-    role: z.enum(["ADMIN", "VENDEDOR"]),
+    role: z.enum(["ADMIN", "OWNER", "SELLER"]),
     businessId: z.string().min(1, "Selecciona un negocio"),
     newBusinessName: z.string().optional(),
 }).refine((data) => {
@@ -30,31 +30,53 @@ const schema = z.object({
 
 type Business = { id: string; name: string; slug: string };
 
-export function CreateUserSheet() {
+interface CreateUserSheetProps {
+    callerRole: string;
+    callerBusinessId: string;
+}
+
+export function CreateUserSheet({ callerRole, callerBusinessId }: CreateUserSheetProps) {
     const [open, setOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | undefined>();
     const [success, setSuccess] = useState<string | undefined>();
     const [businesses, setBusinesses] = useState<Business[]>([]);
 
+    const isAdmin = callerRole === "ADMIN";
+
+    // Available roles based on the caller's role
+    const availableRoles = isAdmin
+        ? [{ value: "ADMIN" as const, label: "Admin" }, { value: "OWNER" as const, label: "Dueño" }, { value: "SELLER" as const, label: "Vendedor" }]
+        : [{ value: "OWNER" as const, label: "Dueño" }, { value: "SELLER" as const, label: "Vendedor" }];
+
+    const defaultRole = isAdmin ? "SELLER" : "SELLER";
+    const defaultBusinessId = isAdmin ? "" : callerBusinessId;
+
     const { register, handleSubmit, formState: { errors }, watch, setValue, reset } = useForm<z.infer<typeof schema>>({
         resolver: zodResolver(schema),
-        defaultValues: { email: "", password: "", role: "VENDEDOR", businessId: "" },
+        defaultValues: { email: "", password: "", role: defaultRole, businessId: defaultBusinessId },
     });
 
     const role = watch("role");
     const businessId = watch("businessId");
 
-    // Load businesses when sheet opens
+    // Load businesses when sheet opens (ADMIN only)
     useEffect(() => {
-        if (open) {
+        if (open && isAdmin) {
             getBusinesses().then((data) => {
                 if (data && "businesses" in data && data.businesses) {
                     setBusinesses(data.businesses);
                 }
             });
         }
-    }, [open]);
+    }, [open, isAdmin]);
+
+    // For OWNER, always set businessId to their own business
+    useEffect(() => {
+        if (!isAdmin && open) {
+            setValue("businessId", callerBusinessId);
+        }
+    }, [open, isAdmin, callerBusinessId, setValue]);
 
     const onSubmit = (values: z.infer<typeof schema>) => {
         setError(undefined);
@@ -66,7 +88,7 @@ export function CreateUserSheet() {
                 }
                 if (data && "success" in data) {
                     setSuccess(data.success);
-                    reset();
+                    reset({ email: "", password: "", role: defaultRole, businessId: defaultBusinessId });
                     // Close the sheet after success
                     setTimeout(() => {
                         setOpen(false);
@@ -80,9 +102,9 @@ export function CreateUserSheet() {
     };
 
     return (
-        <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) { reset(); setError(undefined); setSuccess(undefined); } }}>
+        <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) { reset({ email: "", password: "", role: defaultRole, businessId: defaultBusinessId }); setError(undefined); setSuccess(undefined); } }}>
             <SheetTrigger asChild>
-                <Button className="bg-zinc-900 text-white hover:bg-zinc-800 gap-2 font-bold shadow-sm">
+                <Button className="bg-zinc-900 text-white hover:bg-zinc-800 gap-2 font-bold shadow-sm cursor-pointer">
                     <UserPlus className="h-4 w-4" />
                     Nuevo Usuario
                 </Button>
@@ -91,7 +113,10 @@ export function CreateUserSheet() {
                 <SheetHeader className="p-6 border-b">
                     <SheetTitle className="text-xl font-black tracking-tighter">Crear Usuario</SheetTitle>
                     <SheetDescription className="text-zinc-500 text-sm">
-                        Crea un nuevo acceso y asígnalo a un negocio existente o crea uno nuevo.
+                        {isAdmin
+                            ? "Crea un nuevo acceso y asígnalo a un negocio existente o crea uno nuevo."
+                            : "Crea un nuevo usuario para tu negocio."
+                        }
                     </SheetDescription>
                 </SheetHeader>
 
@@ -125,59 +150,70 @@ export function CreateUserSheet() {
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-zinc-700">Rol</label>
                         <div className="flex gap-3">
-                            {(["ADMIN", "VENDEDOR"] as const).map((r) => (
+                            {availableRoles.map((r) => (
                                 <button
-                                    key={r}
+                                    key={r.value}
                                     type="button"
-                                    onClick={() => setValue("role", r, { shouldValidate: true })}
-                                    className={`flex-1 rounded-lg border-2 py-3 text-sm font-bold transition-all ${role === r
+                                    onClick={() => setValue("role", r.value, { shouldValidate: true })}
+                                    className={`flex-1 rounded-lg border-2 py-3 text-sm font-bold transition-all cursor-pointer ${role === r.value
                                         ? "border-zinc-900 bg-zinc-900 text-white"
                                         : "border-zinc-200 text-zinc-500 hover:border-zinc-400"
                                         }`}
                                 >
-                                    {r}
+                                    {r.label}
                                 </button>
                             ))}
                         </div>
                         {errors.role && <p className="text-xs text-red-500">{errors.role.message}</p>}
                     </div>
 
-                    {/* Business Selector */}
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-zinc-700">Negocio</label>
-                        <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
-                            {/* New Business Option */}
-                            <button
-                                type="button"
-                                onClick={() => setValue("businessId", "new", { shouldValidate: true })}
-                                className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-sm transition-all text-left ${businessId === "new"
-                                    ? "border-zinc-900 bg-zinc-50"
-                                    : "border-zinc-200 hover:border-zinc-400"
-                                    }`}
-                            >
-                                <span className="font-bold text-zinc-900">+ Crear Nuevo Negocio</span>
-                            </button>
-
-                            {businesses.map((b) => (
+                    {/* Business Selector - ADMIN only */}
+                    {isAdmin && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-semibold text-zinc-700">Negocio</label>
+                            <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
+                                {/* New Business Option */}
                                 <button
-                                    key={b.id}
                                     type="button"
-                                    onClick={() => setValue("businessId", b.id, { shouldValidate: true })}
-                                    className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-sm transition-all text-left ${businessId === b.id
+                                    onClick={() => setValue("businessId", "new", { shouldValidate: true })}
+                                    className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-sm transition-all text-left cursor-pointer ${businessId === "new"
                                         ? "border-zinc-900 bg-zinc-50"
                                         : "border-zinc-200 hover:border-zinc-400"
                                         }`}
                                 >
-                                    <span className="font-semibold text-zinc-800">{b.name}</span>
-                                    <span className="text-xs text-zinc-400">/{b.slug}</span>
+                                    <span className="font-bold text-zinc-900">+ Crear Nuevo Negocio</span>
                                 </button>
-                            ))}
-                        </div>
-                        {errors.businessId && <p className="text-xs text-red-500">{errors.businessId.message}</p>}
-                    </div>
 
-                    {/* New Business Name Input */}
-                    {businessId === "new" && (
+                                {businesses.map((b) => (
+                                    <button
+                                        key={b.id}
+                                        type="button"
+                                        onClick={() => setValue("businessId", b.id, { shouldValidate: true })}
+                                        className={`flex items-center justify-between rounded-lg border-2 px-4 py-3 text-sm transition-all text-left cursor-pointer ${businessId === b.id
+                                            ? "border-zinc-900 bg-zinc-50"
+                                            : "border-zinc-200 hover:border-zinc-400"
+                                            }`}
+                                    >
+                                        <span className="font-semibold text-zinc-800">{b.name}</span>
+                                        <span className="text-xs text-zinc-400">/{b.slug}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {errors.businessId && <p className="text-xs text-red-500">{errors.businessId.message}</p>}
+                        </div>
+                    )}
+
+                    {/* For OWNER: Show which business the user will be added to */}
+                    {!isAdmin && (
+                        <div className="p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                            <p className="text-sm text-zinc-500">
+                                El usuario será creado en <span className="font-semibold text-zinc-800">tu negocio</span>.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* New Business Name Input (ADMIN only) */}
+                    {isAdmin && businessId === "new" && (
                         <div className="space-y-2 p-4 bg-zinc-50 rounded-xl border border-zinc-100 animate-in fade-in slide-in-from-top-2">
                             <label className="text-sm font-semibold text-zinc-700" htmlFor="newBusinessName">Nombre de la Empresa</label>
                             <Input
@@ -196,7 +232,7 @@ export function CreateUserSheet() {
                     <Button
                         type="submit"
                         onClick={handleSubmit(onSubmit)}
-                        className="w-full h-12 bg-zinc-900 text-white hover:bg-zinc-800 font-bold text-base"
+                        className="w-full h-12 bg-zinc-900 text-white hover:bg-zinc-800 font-bold text-base cursor-pointer"
                         disabled={isPending}
                     >
                         {isPending ? "Creando..." : "Crear Usuario"}

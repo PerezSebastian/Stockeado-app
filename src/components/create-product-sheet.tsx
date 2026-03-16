@@ -80,7 +80,7 @@ export function CreateProductSheet() {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button className="shrink-0 bg-zinc-900 hover:bg-zinc-800 text-white">
+                <Button className="shrink-0 bg-zinc-900 hover:bg-zinc-800 text-white cursor-pointer transition-transform active:scale-95">
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Producto
                 </Button>
@@ -228,10 +228,10 @@ export function CreateProductSheet() {
                             )}
                         />
                         <div className="flex justify-end gap-3 pt-4">
-                            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={loading} className="bg-zinc-900 text-white hover:bg-zinc-800">
+                            <Button type="submit" disabled={loading} className="bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer">
                                 {loading ? "Guardando..." : "Guardar Producto"}
                             </Button>
                         </div>

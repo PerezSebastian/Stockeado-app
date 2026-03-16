@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { cn } from "@/lib/utils";
 import { getUsers } from "@/actions/user-admin";
 import { CreateUserSheet } from "@/components/create-user-sheet";
 import { Badge } from "@/components/ui/badge";
@@ -27,10 +28,12 @@ interface UserWithBusiness {
 export default async function UsersPage() {
     const session = await auth();
 
-    // Server-side role guard
-    if (!session?.user || session.user.role !== "ADMIN") {
+    // Server-side role guard: allow ADMIN and OWNER
+    if (!session?.user || !["ADMIN", "OWNER"].includes(session.user.role)) {
         redirect("/dashboard");
     }
+
+    const isAdmin = session.user.role === "ADMIN";
 
     const data = await getUsers();
     if (!("users" in data) || !data.users) redirect("/dashboard");
@@ -43,10 +46,13 @@ export default async function UsersPage() {
                 <div>
                     <h1 className="text-3xl font-black tracking-tighter text-zinc-900">Usuarios</h1>
                     <p className="text-zinc-500 mt-1 text-sm">
-                        Gestiona cuentas individuales y estados de negocios.
+                        {isAdmin
+                            ? "Gestiona cuentas individuales y estados de negocios."
+                            : "Gestiona los usuarios de tu negocio."
+                        }
                     </p>
                 </div>
-                <CreateUserSheet />
+                <CreateUserSheet callerRole={session.user.role} callerBusinessId={session.user.businessId} />
             </div>
 
             {/* Stats bar */}
@@ -63,7 +69,9 @@ export default async function UsersPage() {
                             <tr className="border-b border-zinc-100 bg-zinc-50/50">
                                 <th className="text-left px-6 py-4 font-semibold text-zinc-600">Email</th>
                                 <th className="text-left px-6 py-4 font-semibold text-zinc-600">Rol</th>
-                                <th className="text-left px-6 py-4 font-semibold text-zinc-600">Negocio</th>
+                                {isAdmin && (
+                                    <th className="text-left px-6 py-4 font-semibold text-zinc-600">Negocio</th>
+                                )}
                                 <th className="text-left px-6 py-4 font-semibold text-zinc-600">Estado</th>
                                 <th className="text-left px-6 py-4 font-semibold text-zinc-600">Desde</th>
                                 <th className="text-right px-6 py-4 font-semibold text-zinc-600">Acción</th>
@@ -72,40 +80,73 @@ export default async function UsersPage() {
                         <tbody className="divide-y divide-zinc-100">
                             {users.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center text-zinc-400">
+                                    <td colSpan={isAdmin ? 6 : 5} className="px-6 py-16 text-center text-zinc-400">
                                         No hay usuarios registrados todavía.
                                     </td>
                                 </tr>
                             )}
                             {users.map((user) => {
+                                const isCurrentUser = user.id === session.user.id;
                                 // A business is 'master' if it contains the admin@galape.com user
-                                const isMasterBusiness = user.business?.users?.some((u: any) => u.email === "admin@galape.com");
+                                const isMasterBusiness = user.business?.users?.some((u) => u.email === "admin@galape.com");
+
+                                // Users cannot toggle themselves. OWNER can only toggle SELLER.
+                                const canToggleUser = !isCurrentUser && (isAdmin || user.role === "SELLER");
 
                                 return (
-                                    <tr key={user.id} className="hover:bg-zinc-50/50 transition-colors group">
-                                        <td className="px-6 py-4 font-medium text-zinc-800">{user.email}</td>
+                                    <tr
+                                        key={user.id}
+                                        className={cn(
+                                            "transition-colors group",
+                                            isCurrentUser
+                                                ? "bg-zinc-50/80 hover:bg-zinc-100/80"
+                                                : "hover:bg-zinc-50/50"
+                                        )}
+                                    >
+                                        <td className={cn(
+                                            "px-6 py-4",
+                                            isCurrentUser && "shadow-[inset_3px_0_0_#18181b]"
+                                        )}>
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "font-medium",
+                                                    isCurrentUser ? "text-zinc-900 font-bold" : "text-zinc-800"
+                                                )}>
+                                                    {user.email}
+                                                </span>
+                                                {isCurrentUser && (
+                                                    <Badge className="bg-zinc-900 text-white text-[10px] px-1.5 py-0 h-4 border-none font-black uppercase tracking-wider">
+                                                        Tú
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <Badge
                                                 variant={user.role === "ADMIN" ? "default" : "secondary"}
                                                 className={
                                                     user.role === "ADMIN"
                                                         ? "bg-zinc-900 text-white text-xs font-bold"
-                                                        : "bg-zinc-100 text-zinc-700 text-xs font-bold"
+                                                        : user.role === "OWNER"
+                                                            ? "bg-indigo-100 text-indigo-700 text-xs font-bold"
+                                                            : "bg-zinc-100 text-zinc-700 text-xs font-bold"
                                                 }
                                             >
-                                                {user.role}
+                                                {user.role === "ADMIN" ? "Admin" : user.role === "OWNER" ? "Dueño" : "Vendedor"}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 text-zinc-600">
-                                            {user.business ? (
-                                                <span className="flex flex-col">
-                                                    <span className="font-medium text-zinc-800">{user.business.name}</span>
-                                                    <span className="text-xs text-zinc-400">/{user.business.slug}</span>
-                                                </span>
-                                            ) : (
-                                                <span className="text-zinc-400 italic">Sin negocio</span>
-                                            )}
-                                        </td>
+                                        {isAdmin && (
+                                            <td className="px-6 py-4 text-zinc-600">
+                                                {user.business ? (
+                                                    <span className="flex flex-col">
+                                                        <span className="font-medium text-zinc-800">{user.business.name}</span>
+                                                        <span className="text-xs text-zinc-400">/{user.business.slug}</span>
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-zinc-400 italic">Sin negocio</span>
+                                                )}
+                                            </td>
+                                        )}
                                         <td className="px-6 py-4">
                                             {user.business?.planStatus === "INACTIVE" ? (
                                                 <Badge className="bg-red-100 text-red-700 border-red-200 text-[10px] font-black">
@@ -130,13 +171,15 @@ export default async function UsersPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex justify-end gap-2">
-                                                <ToggleUserButton
-                                                    userId={user.id}
-                                                    isActive={user.isActive}
-                                                    isAdmin={user.email === "admin@galape.com"}
-                                                />
+                                                {canToggleUser && (
+                                                    <ToggleUserButton
+                                                        userId={user.id}
+                                                        isActive={user.isActive}
+                                                        isAdmin={user.email === "admin@galape.com"}
+                                                    />
+                                                )}
 
-                                                {user.business && !isMasterBusiness && (
+                                                {isAdmin && user.business && !isMasterBusiness && (
                                                     <ToggleStatusButton
                                                         businessId={user.business.id}
                                                         currentStatus={user.business.planStatus as any}

@@ -3,64 +3,105 @@
 import {
     DropdownMenu,
     DropdownMenuContent,
-    DropdownMenuItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
-import { deleteProduct } from "@/actions/inventory";
+import { MoreHorizontal, Trash2, RotateCcw } from "lucide-react";
+import { deleteProduct, restoreProduct } from "@/actions/inventory";
 import { toast } from "sonner";
 import { useState } from "react";
+import { EditProductSheet } from "@/components/edit-product-sheet";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
-interface ProductActionsProps {
+interface Product {
     id: string;
     name: string;
+    sku: string | null;
+    category: string | null;
+    cost: number;
+    price: number;
+    stock: number;
+    minStock: number;
+    isPublic: boolean;
+    isDeleted: boolean;
 }
 
-export function ProductActions({ id, name }: ProductActionsProps) {
-    const [loading, setLoading] = useState(false);
+interface ProductActionsProps {
+    product: Product;
+}
 
-    const onDelete = async () => {
-        if (!confirm(`¿Estás seguro de que deseas eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
+export function ProductActions({ product }: ProductActionsProps) {
+    const [menuOpen, setMenuOpen] = useState(false);
 
-        setLoading(true);
-        try {
-            const res = await deleteProduct(id);
-            if (res.error) {
-                toast.error(res.error);
-            } else {
-                toast.success(res.success);
-            }
-        } catch (error) {
-            toast.error("Error al intentar eliminar el producto");
-        } finally {
-            setLoading(false);
-        }
+    const handleDelete = async () => {
+        const res = await deleteProduct(product.id);
+        if (res.error) toast.error(res.error);
+        else toast.success(res.success);
+    };
+
+    const handleRestore = async () => {
+        const res = await restoreProduct(product.id);
+        if (res.error) toast.error(res.error);
+        else toast.success(res.success);
     };
 
     return (
-        <DropdownMenu>
+        <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-900" disabled={loading}>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-zinc-400 hover:text-zinc-900 cursor-pointer transition-colors"
+                >
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[160px]">
+            <DropdownMenuContent align="end" className="w-[170px]">
                 <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                    className="cursor-pointer text-red-600 focus:text-red-600"
-                    onClick={onDelete}
-                >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Eliminar
-                </DropdownMenuItem>
+
+                {!product.isDeleted && (
+                    <EditProductSheet product={product} onClose={() => setMenuOpen(false)} />
+                )}
+
+                {product.isDeleted ? (
+                    <ConfirmDialog
+                        title="¿Habilitar producto?"
+                        description={`"${product.name}" volverá a estar activo en el inventario.`}
+                        confirmLabel="Habilitar"
+                        variant="default"
+                        trigger={
+                            <DropdownMenuItem
+                                className="cursor-pointer text-emerald-600 focus:text-emerald-600"
+                                onSelect={(e) => e.preventDefault()}
+                            >
+                                <RotateCcw className="mr-2 h-4 w-4" />
+                                Habilitar
+                            </DropdownMenuItem>
+                        }
+                        onConfirm={handleRestore}
+                    />
+                ) : (
+                    <ConfirmDialog
+                        title="¿Dar de baja el producto?"
+                        description={`"${product.name}" quedará deshabilitado. Podrás reactivarlo en cualquier momento desde la tabla.`}
+                        confirmLabel="Dar de baja"
+                        variant="destructive"
+                        trigger={
+                            <DropdownMenuItem
+                                className="cursor-pointer text-red-600 focus:text-red-600"
+                                onSelect={(e) => e.preventDefault()}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Dar de baja
+                            </DropdownMenuItem>
+                        }
+                        onConfirm={handleDelete}
+                    />
+                )}
             </DropdownMenuContent>
         </DropdownMenu>
     );

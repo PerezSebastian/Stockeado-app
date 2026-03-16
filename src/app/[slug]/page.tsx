@@ -78,8 +78,9 @@ export default async function TenantPage({
             {/* Footer */}
             <footer className="bg-white border-t border-zinc-200 py-12 mt-12">
                 <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-zinc-500 font-medium">
-                    <p>&copy; {new Date().getFullYear()} {business.name}. Todos los derechos reservados.</p>
-                    <p>Potenciado por Galape App</p>
+                </div>
+                <div className="mt-8 text-center text-sm text-zinc-500">
+                    <p>Potenciado por Stockeado</p>
                 </div>
             </footer>
         </div>

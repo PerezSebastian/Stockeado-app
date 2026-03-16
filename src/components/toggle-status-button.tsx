@@ -15,7 +15,7 @@ export function ToggleStatusButton({ businessId, currentStatus }: ToggleStatusBu
 
     const handleToggle = () => {
         startTransition(() => {
-            toggleBusinessStatusAction(businessId).then((data) => {
+            toggleBusinessStatusAction(businessId, currentStatus).then((data) => {
                 if (data?.success) {
                     window.location.reload();
                 } else if (data?.error) {
@@ -29,7 +29,7 @@ export function ToggleStatusButton({ businessId, currentStatus }: ToggleStatusBu
         <Button
             size="sm"
             variant={currentStatus === "ACTIVE" ? "destructive" : "default"}
-            className="font-bold gap-1.5 h-8 px-3 transition-all active:scale-95"
+            className="font-bold gap-1.5 h-8 px-3 transition-all active:scale-95 cursor-pointer"
             disabled={isPending}
             onClick={handleToggle}
         >

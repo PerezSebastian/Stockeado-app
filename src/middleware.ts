@@ -39,8 +39,8 @@ export default auth((req) => {
     }
   }
 
-  // Protect /dashboard/users for non-admin users
-  if (isUsersRoute && userRole !== "ADMIN") {
+  // Protect /dashboard/users for non-admin and non-owner users
+  if (isUsersRoute && userRole !== "ADMIN" && userRole !== "OWNER") {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 

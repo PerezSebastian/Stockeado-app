@@ -41,7 +41,7 @@ export default function LoginPage() {
         <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
             <Card className="w-full max-w-sm shadow-xl">
                 <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold tracking-tight text-center">Galape App</CardTitle>
+                    <CardTitle className="text-2xl font-bold tracking-tight text-center">Stockeado</CardTitle>
                     <CardDescription className="text-center">
                         Ingresa tus credenciales para acceder a tu cuenta
                     </CardDescription>

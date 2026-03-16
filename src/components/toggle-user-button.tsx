@@ -35,7 +35,7 @@ export function ToggleUserButton({ userId, isActive, isAdmin }: ToggleUserButton
             variant={isActive ? "outline" : "default"}
             disabled={isPending}
             onClick={handleToggle}
-            className={`flex items-center gap-2 font-bold h-8 ${isActive ? "text-red-600 hover:text-red-700 hover:bg-red-50" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
+            className={`font-bold gap-1.5 h-8 px-3 transition-all active:scale-95 cursor-pointer ${isActive ? "text-red-600 hover:text-red-700 hover:bg-red-50" : "bg-emerald-600 hover:bg-emerald-700 text-white"}`}
         >
             {isActive ? (
                 <>

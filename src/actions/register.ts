@@ -3,6 +3,8 @@
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { signIn } from "@/auth";
+import { AuthError } from "next-auth";
 
 const registerSchema = z.object({
     businessName: z.string().min(2, "El nombre del negocio debe tener al menos 2 caracteres"),
@@ -61,13 +63,28 @@ export async function registerAction(values: z.infer<typeof registerSchema>) {
                 data: {
                     email,
                     password: hashedPassword,
-                    role: "ADMIN",
+                    role: "OWNER",
                     businessId: business.id,
                 },
             });
         });
 
-        return { success: "¡Negocio creado con éxito! Ya puedes iniciar sesión." };
+        // Auto-login after successful registration
+        try {
+            await signIn("credentials", {
+                email,
+                password,
+                redirectTo: "/dashboard?registered=true",
+            });
+        } catch (error) {
+            // signIn throws a NEXT_REDIRECT which is expected behavior
+            if (error instanceof AuthError) {
+                return { error: "Cuenta creada pero hubo un error al iniciar sesión automáticamente. Intentá loguearte manualmente." };
+            }
+            throw error;
+        }
+
+        return { success: "¡Registro exitoso!" };
     } catch (error) {
         console.error("Register Error:", error);
         return { error: "Ocurrió un error al crear la cuenta" };
