@@ -49,10 +49,8 @@ const CreateSaleSchema = z.object({
             (items) => new Set(items.map((i) => i.productId)).size === items.length,
             "No puede haber productos duplicados en el carrito"
         ),
-    paymentMethod: z.string().refine(
-        (v) => ALLOWED_PAYMENT_METHODS.includes(v as typeof ALLOWED_PAYMENT_METHODS[number]),
-        { message: "Método de pago no válido" }
-    ),
+    paymentMethod: z.string().optional(), // Legacy
+    paymentMethodId: z.string().uuid("Seleccioná un método de pago válido"),
     notes: z.string().max(500, "Las notas no pueden superar los 500 caracteres").optional(),
 });
 
@@ -68,7 +66,7 @@ export async function createSale(input: z.infer<typeof CreateSaleSchema>) {
         return { error: firstError?.message ?? "Datos de venta inválidos" };
     }
 
-    const { items, paymentMethod, notes } = validated.data;
+    const { items, paymentMethod, paymentMethodId, notes } = validated.data;
     const businessId = session.user.businessId!;
 
     // ── Verificar productos en la BD (pertenencia, estado, stock y precio) ──
@@ -113,7 +111,8 @@ export async function createSale(input: z.infer<typeof CreateSaleSchema>) {
             const sale = await tx.sale.create({
                 data: {
                     total,
-                    paymentMethod,
+                    paymentMethod: paymentMethod || "Otro",
+                    paymentMethodId,
                     notes,
                     businessId,
                     items: {

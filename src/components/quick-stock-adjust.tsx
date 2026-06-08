@@ -74,7 +74,7 @@ export function QuickStockAdjust({ productId, currentStock, disabled }: QuickSto
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-zinc-500 hover:text-zinc-900 cursor-pointer transition-colors"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                         title="Modificar Stock"
                         disabled={disabled}
                     >
@@ -93,7 +93,7 @@ export function QuickStockAdjust({ productId, currentStock, disabled }: QuickSto
 
                 <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="currentStock" className="text-right text-zinc-500">
+                        <Label htmlFor="currentStock" className="text-right text-muted-foreground">
                             Actual
                         </Label>
                         <span className="col-span-3 font-medium">{currentStock}</span>
@@ -134,7 +134,7 @@ export function QuickStockAdjust({ productId, currentStock, disabled }: QuickSto
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={loading} className="cursor-pointer">
                         Cancelar
                     </Button>
-                    <Button onClick={handleSave} disabled={loading} className="bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer">
+                    <Button onClick={handleSave} disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                         {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Guardar Cambios
                     </Button>
@@ -143,3 +143,4 @@ export function QuickStockAdjust({ productId, currentStock, disabled }: QuickSto
         </Dialog>
     );
 }
+

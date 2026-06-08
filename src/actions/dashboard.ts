@@ -3,16 +3,27 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
+import { UserRole } from "@prisma/client";
+
 export async function getDashboardStats() {
     const session = await auth();
     if (!session?.user) {
         return { error: "No autorizado" };
     }
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = session.user.role === UserRole.ADMIN;
     const businessIdQuery = isAdmin ? undefined : session.user.businessId;
 
     try {
+        let businessName = "Stockeado";
+        if (session.user.businessId) {
+            const business = await db.business.findUnique({
+                where: { id: session.user.businessId },
+                select: { name: true }
+            });
+            if (business) businessName = business.name;
+        }
+
         // Today's date range
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
@@ -75,6 +86,7 @@ export async function getDashboardStats() {
         });
 
         return {
+            businessName,
             totalSalesToday,
             ticketsToday,
             criticalStockProducts,

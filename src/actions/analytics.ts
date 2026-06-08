@@ -6,11 +6,13 @@ import { startOfDay, startOfMonth, startOfYear, subDays } from "date-fns";
 
 export type AnalyticsPeriod = "TODAY" | "7_DAYS" | "THIS_MONTH" | "THIS_YEAR" | "ALL_TIME";
 
+import { UserRole } from "@prisma/client";
+
 export async function getAnalyticsData(period: AnalyticsPeriod) {
     const session = await auth();
     if (!session?.user) return { error: "No autorizado" };
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = session.user.role === UserRole.ADMIN;
     const businessIdQuery = isAdmin ? undefined : session.user.businessId;
 
     let startDate: Date | undefined = undefined;

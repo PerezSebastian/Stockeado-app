@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
-import { ExpenseCategory } from "@prisma/client";
+import { ExpenseCategory, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getPaginatedExpenses(
@@ -44,6 +44,7 @@ export async function getPaginatedExpenses(
             db.fixedExpense.count({ where: whereClause }),
             db.fixedExpense.findMany({
                 where: whereClause,
+                include: { categoryRel: true },
                 orderBy: { dueDate: "desc" }, // Gastos más recientes primero en la tabla
                 skip,
                 take: limit,
@@ -53,6 +54,7 @@ export async function getPaginatedExpenses(
         const serializedExpenses = rawExpenses.map(e => ({
             ...e,
             amount: Number(e.amount),
+            categoryName: (e as any).categoryRel?.name || e.category || "Otros"
         }));
 
         const totalPages = Math.ceil(totalCount / limit);
@@ -96,6 +98,7 @@ export async function getExpenseMetrics(
         // Pero al menos procesamos en el backend y solo mandamos un pequeño JSON al cliente.
         const expenses = await db.fixedExpense.findMany({
             where: whereClause,
+            include: { categoryRel: true },
             orderBy: { dueDate: "asc" }
         });
 
@@ -114,13 +117,15 @@ export async function getExpenseMetrics(
         for (const e of expenses) {
             const amount = Number(e.amount);
             totalGastos += amount;
+            const cat = (e as any).categoryRel?.name || e.category || "Otros";
             if (e.isPaid) {
                 totalPagado += amount;
             } else {
                 totalPendiente += amount;
                 unpaidExpenses.push({
                     ...e,
-                    amount: amount
+                    amount: amount,
+                    categoryName: cat
                 });
             }
 
@@ -136,7 +141,6 @@ export async function getExpenseMetrics(
                 timeKey = format(date, "yyyy-MM");
             }
 
-            const cat = e.category || "Otros";
             categoriesSet.add(cat);
 
             if (!groups[timeKey]) groups[timeKey] = {};
@@ -204,18 +208,23 @@ export async function getExpenseMetrics(
 export async function createExpense(data: {
     description: string;
     amount: number;
-    category: ExpenseCategory;
+    category?: ExpenseCategory | string;
+    categoryId: string;
     dueDate: Date;
 }) {
     const session = await auth();
     if (!session?.user?.businessId) return { error: "No autorizado" };
-
+    const LEGACY_CATEGORIES = ["LUZ", "GAS", "INTERNET", "ALQUILER", "AGUA", "SUELDOS", "IMPUESTOS", "OTROS"];
+    
     try {
+        const isValidEnum = typeof data.category === 'string' && LEGACY_CATEGORIES.includes(data.category.toUpperCase());
+        
         await db.fixedExpense.create({
             data: {
                 description: data.description,
                 amount: data.amount,
-                category: data.category,
+                category: (isValidEnum ? data.category?.toUpperCase() : "OTROS") as any,
+                categoryId: data.categoryId,
                 dueDate: data.dueDate,
                 businessId: session.user.businessId,
             }
@@ -237,7 +246,7 @@ export async function toggleExpensePaidStatus(expenseId: string, isPaid: boolean
             where: {
                 id: expenseId,
                 // Si no es ADMIN, asegura que solo pueda modificar los suyos
-                ...(session.user.role !== "ADMIN" && { businessId: session.user.businessId })
+                ...(session.user.role !== UserRole.ADMIN && { businessId: session.user.businessId })
             },
             data: {
                 isPaid,
@@ -260,7 +269,7 @@ export async function deleteExpense(expenseId: string) {
         await db.fixedExpense.update({
             where: {
                 id: expenseId,
-                ...(session.user.role !== "ADMIN" && { businessId: session.user.businessId })
+                ...(session.user.role !== UserRole.ADMIN && { businessId: session.user.businessId })
             },
             data: {
                 isDeleted: true

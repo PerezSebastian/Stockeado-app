@@ -63,7 +63,7 @@ export function PaginationControl({ totalPages, currentPage, totalItems, limit }
                 >
                     Anterior
                 </Button>
-                <span className="text-sm text-zinc-600">
+                <span className="text-sm text-muted-foreground">
                     Pág {currentPage} de {totalPages}
                 </span>
                 <Button
@@ -78,7 +78,7 @@ export function PaginationControl({ totalPages, currentPage, totalItems, limit }
             </div>
 
             <div className="hidden sm:flex flex-1 items-center justify-between">
-                <div className="flex items-center gap-4 text-sm text-zinc-600">
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-2">
                         <span>Mostrar</span>
                         <Select value={limit.toString()} onValueChange={handleLimitChange}>
@@ -105,7 +105,7 @@ export function PaginationControl({ totalPages, currentPage, totalItems, limit }
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <p className="text-sm text-zinc-600 mr-2">
+                    <p className="text-sm text-muted-foreground mr-2">
                         Página {currentPage} de {totalPages}
                     </p>
                     <div className="flex items-center space-x-1">
@@ -151,3 +151,4 @@ export function PaginationControl({ totalPages, currentPage, totalItems, limit }
         </div>
     );
 }
+

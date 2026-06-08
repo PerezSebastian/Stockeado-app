@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, ColorType, IChartApi, Time, AreaSeries } from "lightweight-charts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { resolveChartColor, withAlpha } from "@/lib/lightweight-chart-colors";
 
 export function RevenueChart({ data }: { data: any[] }) {
     const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -13,6 +14,12 @@ export function RevenueChart({ data }: { data: any[] }) {
     useEffect(() => {
         if (!hasData || !chartContainerRef.current) return;
 
+        const mutedForeground = resolveChartColor("var(--muted-foreground)", "#71717a");
+        const borderColor = withAlpha("var(--border)", 0.7, "rgba(228, 228, 231, 0.7)");
+        const lineColor = resolveChartColor("var(--chart-1)", "#10b981");
+        const topColor = withAlpha("var(--chart-1)", 0.4, "rgba(16, 185, 129, 0.4)");
+        const bottomColor = withAlpha("var(--chart-1)", 0, "rgba(16, 185, 129, 0)");
+
         const handleResize = () => {
             if (chartContainerRef.current && chartRef.current) {
                 chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
@@ -22,11 +29,11 @@ export function RevenueChart({ data }: { data: any[] }) {
         const chart = createChart(chartContainerRef.current, {
             layout: {
                 background: { type: ColorType.Solid, color: 'transparent' },
-                textColor: '#71717a', // zinc-500
+                textColor: mutedForeground,
             },
             grid: {
                 vertLines: { visible: false },
-                horzLines: { color: '#f4f4f5', style: 3 }, // zinc-100 dashed
+                horzLines: { color: borderColor, style: 3 },
             },
             rightPriceScale: {
                 borderVisible: false,
@@ -46,9 +53,9 @@ export function RevenueChart({ data }: { data: any[] }) {
         chartRef.current = chart;
 
         const areaSeries = chart.addSeries(AreaSeries, {
-            lineColor: '#10b981', // emerald-500
-            topColor: 'rgba(16, 185, 129, 0.4)',
-            bottomColor: 'rgba(16, 185, 129, 0)',
+            lineColor,
+            topColor,
+            bottomColor,
             lineWidth: 2,
             priceFormat: {
                 type: 'price',
@@ -87,10 +94,10 @@ export function RevenueChart({ data }: { data: any[] }) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-zinc-800">Evolución de Ingresos</CardTitle>
+                    <CardTitle className="text-foreground">Evolución de Ingresos</CardTitle>
                     <CardDescription>No hay datos suficientes</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[300px] flex items-center justify-center text-sm text-zinc-500">
+                <CardContent className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
                     No se registran transacciones.
                 </CardContent>
             </Card>
@@ -100,7 +107,7 @@ export function RevenueChart({ data }: { data: any[] }) {
     return (
         <Card className="flex flex-col">
             <CardHeader className="shrink-0">
-                <CardTitle className="text-zinc-800">Evolución de Ingresos</CardTitle>
+                <CardTitle className="text-foreground">Evolución de Ingresos</CardTitle>
                 <CardDescription>Progreso detallado del periodo</CardDescription>
             </CardHeader>
             <CardContent className="p-0 pb-6 pr-6 pl-2 flex-1">
@@ -109,3 +116,4 @@ export function RevenueChart({ data }: { data: any[] }) {
         </Card>
     );
 }
+

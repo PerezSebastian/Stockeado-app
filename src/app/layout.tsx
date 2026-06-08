@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { auth } from "@/auth";
+import { db } from "@/lib/db";
+import { getThemeClassName } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,15 +21,22 @@ export const metadata: Metadata = {
   description: "Sistema avanzado de gestión de inventario y punto de venta para negocios.",
 };
 
-import { Toaster } from "sonner";
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+  const userTheme = session?.user?.id
+    ? await db.user.findUnique({
+        where: { id: session.user.id },
+        select: { themeMode: true },
+      })
+    : null;
+  const themeClassName = getThemeClassName(userTheme?.themeMode ?? session?.user?.themeMode);
+
   return (
-    <html lang="es" className="h-full">
+    <html lang="es" className={`h-full ${themeClassName}`} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased h-full overflow-hidden`}
       >

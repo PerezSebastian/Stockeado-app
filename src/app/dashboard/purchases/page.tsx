@@ -10,10 +10,11 @@ import { PaginationControl } from "@/components/ui/pagination-control";
 export default async function PurchasesPage({
     searchParams,
 }: {
-    searchParams: { page?: string; limit?: string };
+    searchParams: Promise<{ page?: string; limit?: string }>;
 }) {
-    const page = Number(searchParams?.page) || 1;
-    const limit = Number(searchParams?.limit) || 10;
+    const resolvedParams = await searchParams;
+    const page = Number(resolvedParams?.page) || 1;
+    const limit = Number(resolvedParams?.limit) || 10;
 
     const session = await auth();
     if (!session?.user) redirect("/dashboard");
@@ -22,8 +23,8 @@ export default async function PurchasesPage({
 
     if ("error" in result) {
         return (
-            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-zinc-200 bg-white">
-                <p className="text-zinc-500">{result.error}</p>
+            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-border bg-background">
+                <p className="text-muted-foreground">{result.error}</p>
             </div>
         );
     }
@@ -34,8 +35,8 @@ export default async function PurchasesPage({
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Historial de Compras</h1>
-                    <p className="text-zinc-500">Un registro de todas las compras (restocks) realizadas a proveedores.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Historial de Compras</h1>
+                    <p className="text-muted-foreground">Un registro de todas las compras (restocks) realizadas a proveedores.</p>
                 </div>
                 <Button asChild>
                     <Link href="/dashboard/purchases/new">
@@ -46,7 +47,7 @@ export default async function PurchasesPage({
             </div>
 
             {/* Table */}
-            <div className="bg-white border rounded-md shadow-sm">
+            <div className="bg-background border rounded-md shadow-sm">
                 <PurchasesTable purchases={purchases || []} />
                 <div className="border-t">
                     <PaginationControl
@@ -60,3 +61,4 @@ export default async function PurchasesPage({
         </div>
     );
 }
+

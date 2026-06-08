@@ -2,7 +2,19 @@ import { db } from "../src/lib/db";
 import bcrypt from "bcryptjs";
 
 async function main() {
-    const hashedPassword = await bcrypt.hash("admin123", 10);
+    const adminEmail = process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL;
+    const adminPassword = process.env.MASTER_ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+        throw new Error(
+            "❌ ERROR: Las variables de entorno NEXT_PUBLIC_MASTER_ADMIN_EMAIL y MASTER_ADMIN_PASSWORD deben estar definidas en tu archivo .env"
+        );
+    }
+
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
+    const crypto = await import("crypto");
+    const masterApiKey = "sk_" + crypto.randomUUID().replace(/-/g, "");
 
     // 1. Create a Business
     const business = await db.business.upsert({
@@ -11,19 +23,20 @@ async function main() {
         create: {
             name: "Admin Shop",
             slug: "admin-shop",
+            apiKey: masterApiKey,
         },
     });
 
     // 2. Create the Admin User associated with the Business
     const admin = await db.user.upsert({
-        where: { email: "admin@galape.com" },
+        where: { email: adminEmail },
         update: {
             password: hashedPassword,
             role: "ADMIN",
             businessId: business.id,
         },
         create: {
-            email: "admin@galape.com",
+            email: adminEmail,
             password: hashedPassword,
             role: "ADMIN",
             businessId: business.id,

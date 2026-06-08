@@ -20,6 +20,7 @@ import { ExpensesCharts } from "./expenses-charts";
 import { AddExpenseModal } from "./add-expense-modal";
 import { PaginationControl } from "@/components/ui/pagination-control";
 import { getPaginatedExpenses, getExpenseMetrics } from "@/actions/expenses";
+import { Category } from "@prisma/client";
 
 interface ExpensesClientProps {
     initialMetrics: {
@@ -28,9 +29,10 @@ interface ExpensesClientProps {
         chartData: any[];
         uniqueCategories: string[];
     };
+    categories: Category[];
 }
 
-export function ExpensesClient({ initialMetrics }: ExpensesClientProps) {
+export function ExpensesClient({ initialMetrics, categories }: ExpensesClientProps) {
     const [filterType, setFilterType] = useState<"month" | "year" | "all">("month");
     const [referenceDate, setReferenceDate] = useState(new Date());
     const [metrics, setMetrics] = useState(initialMetrics);
@@ -123,12 +125,12 @@ export function ExpensesClient({ initialMetrics }: ExpensesClientProps) {
     return (
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <h2 className="text-3xl font-bold text-zinc-800 tracking-tight">{getTitle()}</h2>
+                <h2 className="text-3xl font-bold text-foreground tracking-tight">{getTitle()}</h2>
 
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                     <Select value={filterType} onValueChange={(v: "month" | "year" | "all") => setFilterType(v)}>
-                        <SelectTrigger className="w-[140px] bg-white cursor-pointer transition-colors hover:border-zinc-300">
-                            <Calendar className="w-4 h-4 mr-2 text-zinc-500" />
+                        <SelectTrigger className="w-[140px] bg-background cursor-pointer transition-colors hover:border-border">
+                            <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                             <SelectValue placeholder="Periodo" />
                         </SelectTrigger>
                         <SelectContent>
@@ -139,19 +141,19 @@ export function ExpensesClient({ initialMetrics }: ExpensesClientProps) {
                     </Select>
 
                     {filterType !== "all" && (
-                        <div className="flex items-center bg-white border border-zinc-200 rounded-md">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 cursor-pointer hover:bg-zinc-50" onClick={handlePrevious}>
+                        <div className="flex items-center bg-background border border-border rounded-md">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 cursor-pointer hover:bg-surface-subtle" onClick={handlePrevious}>
                                 <ChevronLeft className="w-4 h-4" />
                             </Button>
-                            <div className="px-2 text-sm font-medium text-zinc-700 min-w-[70px] text-center capitalize">
+                            <div className="px-2 text-sm font-medium text-foreground min-w-[70px] text-center capitalize">
                                 {filterType === "month" ? format(referenceDate, "MMM yy", { locale: es }) : format(referenceDate, "yyyy")}
                             </div>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 cursor-pointer hover:bg-zinc-50" onClick={handleNext}>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 cursor-pointer hover:bg-surface-subtle" onClick={handleNext}>
                                 <ChevronRight className="w-4 h-4" />
                             </Button>
                         </div>
                     )}
-                    <AddExpenseModal />
+                    <AddExpenseModal categories={categories} />
                 </div>
             </div>
 
@@ -159,15 +161,15 @@ export function ExpensesClient({ initialMetrics }: ExpensesClientProps) {
 
             {metrics.unpaidExpenses.length > 0 && (
                 <>
-                    <h3 className="text-xl font-semibold text-zinc-800 mt-8 mb-4">Gastos Pendientes</h3>
+                    <h3 className="text-xl font-semibold text-foreground mt-8 mb-4">Gastos Pendientes</h3>
                     <ExpensesTable expenses={metrics.unpaidExpenses} />
                 </>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8 relative">
                 {isMetricsLoading && (
-                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-md">
-                        <div className="h-6 w-6 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center rounded-md">
+                        <div className="h-6 w-6 border-2 border-border border-t-zinc-600 rounded-full animate-spin" />
                     </div>
                 )}
                 <ExpensesCharts
@@ -177,11 +179,11 @@ export function ExpensesClient({ initialMetrics }: ExpensesClientProps) {
                 />
             </div>
 
-            <h3 className="text-xl font-semibold text-zinc-800 mt-8 mb-4">Detalle de Gastos</h3>
-            <div className="bg-white border rounded-md shadow-sm relative">
+            <h3 className="text-xl font-semibold text-foreground mt-8 mb-4">Detalle de Gastos</h3>
+            <div className="bg-background border rounded-md shadow-sm relative">
                 {paginatedData.isLoading && (
-                    <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                        <div className="h-6 w-6 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" />
+                    <div className="absolute inset-0 bg-background/50 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                        <div className="h-6 w-6 border-2 border-border border-t-zinc-600 rounded-full animate-spin" />
                     </div>
                 )}
                 <ExpensesTable expenses={paginatedData.expenses} />
@@ -197,3 +199,4 @@ export function ExpensesClient({ initialMetrics }: ExpensesClientProps) {
         </div>
     );
 }
+

@@ -3,11 +3,13 @@
 import { db } from "@/lib/db";
 import { auth } from "@/auth";
 
+import { UserRole } from "@prisma/client";
+
 export async function getPurchases(page: number = 1, limit: number = 10) {
     const session = await auth();
     if (!session?.user) return { error: "No autorizado" };
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = session.user.role === UserRole.ADMIN;
     const businessIdQuery = isAdmin ? undefined : session.user.businessId;
 
     try {

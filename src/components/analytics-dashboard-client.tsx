@@ -47,7 +47,7 @@ export function AnalyticsDashboardClient({
             {/* Filters */}
             <div className="flex items-center justify-between">
                 <Select value={currentPeriod} onValueChange={handlePeriodChange}>
-                    <SelectTrigger className="w-[180px] bg-white">
+                    <SelectTrigger className="w-[180px] bg-background">
                         <SelectValue placeholder="Seleccionar Periodo" />
                     </SelectTrigger>
                     <SelectContent>
@@ -64,22 +64,22 @@ export function AnalyticsDashboardClient({
             <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-600">Total Ingresos</CardTitle>
-                        <DollarSign className="h-4 w-4 text-emerald-500" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Ingresos</CardTitle>
+                        <DollarSign className="h-4 w-4 text-success" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-zinc-900">
+                        <div className="text-3xl font-black text-foreground">
                             ${Number(initialData.totalRevenue).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-zinc-600">Total Transacciones</CardTitle>
-                        <ReceiptText className="h-4 w-4 text-blue-500" />
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total Transacciones</CardTitle>
+                        <ReceiptText className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-black text-zinc-900">
+                        <div className="text-3xl font-black text-foreground">
                             {initialData.totalTickets}
                         </div>
                     </CardContent>
@@ -105,3 +105,4 @@ export function AnalyticsDashboardClient({
         </div>
     );
 }
+

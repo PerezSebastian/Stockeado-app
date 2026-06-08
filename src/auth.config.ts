@@ -1,6 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { ExtendedUser } from "./next-auth.d";
-import { UserRole } from "@prisma/client";
+import { ThemeMode, UserRole } from "@prisma/client";
 
 export default {
     providers: [], // Configured in auth.ts
@@ -28,6 +28,10 @@ export default {
                 user.isActive = token.isActive as boolean;
             }
 
+            if (token.themeMode && user) {
+                user.themeMode = token.themeMode as ThemeMode;
+            }
+
             return session;
         },
         async jwt({ token, user }) {
@@ -37,6 +41,7 @@ export default {
                 token.businessId = extendedUser.businessId;
                 token.planStatus = extendedUser.planStatus;
                 token.isActive = extendedUser.isActive;
+                token.themeMode = extendedUser.themeMode;
             }
             return token;
         },

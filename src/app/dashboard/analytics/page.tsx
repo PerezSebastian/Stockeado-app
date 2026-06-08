@@ -15,8 +15,8 @@ export default async function AnalyticsPage({
 
     if (data.error || !data.data) {
         return (
-            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-zinc-200 bg-white">
-                <p className="text-zinc-500">{data.error}</p>
+            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-border bg-background">
+                <p className="text-muted-foreground">{data.error}</p>
             </div>
         );
     }
@@ -24,14 +24,14 @@ export default async function AnalyticsPage({
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-black tracking-tighter text-zinc-900">Estadísticas</h1>
-                <p className="text-zinc-500 mt-1 text-sm">
+                <h1 className="text-3xl font-black tracking-tighter text-foreground">Estadísticas</h1>
+                <p className="text-muted-foreground mt-1 text-sm">
                     Analítica avanzada, productos más vendidos y rendimientos.
                 </p>
             </div>
 
             <Suspense fallback={
-                <div className="h-[600px] w-full flex items-center justify-center border rounded-xl bg-zinc-50 animate-pulse text-zinc-400 font-medium">
+                <div className="h-[600px] w-full flex items-center justify-center border rounded-xl bg-surface-subtle animate-pulse text-muted-foreground font-medium">
                     Cargando gráficos de {period}...
                 </div>
             }>
@@ -40,3 +40,4 @@ export default async function AnalyticsPage({
         </div>
     );
 }
+

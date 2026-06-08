@@ -9,8 +9,8 @@ export default async function NewPurchasePage() {
 
     if (error || !products) {
         return (
-            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-zinc-200 bg-white">
-                <p className="text-zinc-500">{error ?? "Error al cargar los productos"}</p>
+            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-border bg-background">
+                <p className="text-muted-foreground">{error ?? "Error al cargar los productos"}</p>
             </div>
         );
     }
@@ -24,8 +24,8 @@ export default async function NewPurchasePage() {
                     </Button>
                 </Link>
                 <div>
-                    <h1 className="text-3xl font-black tracking-tighter text-zinc-900">Registrar Compra</h1>
-                    <p className="text-zinc-500 mt-1 text-sm">
+                    <h1 className="text-3xl font-black tracking-tighter text-foreground">Registrar Compra</h1>
+                    <p className="text-muted-foreground mt-1 text-sm">
                         Ingresa mercadería y actualiza tu stock automáticamente.
                     </p>
                 </div>
@@ -35,3 +35,4 @@ export default async function NewPurchasePage() {
         </div>
     );
 }
+

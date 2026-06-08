@@ -1,62 +1,53 @@
 "use client";
 
-import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useDebouncedCallback } from "use-debounce";
-import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useUrlSearch } from "@/hooks/use-debounced-search";
+import { BarcodeScannerButton } from "@/components/barcode-scanner-button";
+import { Input } from "@/components/ui/input";
 
 export function InventorySearch() {
-    const searchParams = useSearchParams();
-    const pathname = usePathname();
-    const router = useRouter();
-
-    // Manage local state to immediately update the input field
-    const [searchTerm, setSearchTerm] = useState(searchParams.get("q")?.toString() || "");
-
-    useEffect(() => {
-        setSearchTerm(searchParams.get("q")?.toString() || "");
-    }, [searchParams]);
-
-    const handleSearch = useDebouncedCallback((term: string) => {
-        const params = new URLSearchParams(searchParams);
-        if (term) {
-            params.set("q", term);
-        } else {
-            params.delete("q");
-        }
-        router.replace(`${pathname}?${params.toString()}`);
-    }, 300);
+    const {
+        searchTerm,
+        setSearchTerm,
+        clearSearch,
+        applySearchImmediate,
+    } = useUrlSearch();
 
     const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
-        handleSearch(e.target.value);
     };
 
-    const clearSearch = () => {
-        setSearchTerm("");
-        handleSearch("");
+    const handleDetected = (code: string) => {
+        setSearchTerm(code);
+        applySearchImmediate(code);
     };
 
     return (
-        <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
-            <Input
-                type="text"
-                value={searchTerm}
-                onChange={onChange}
-                placeholder="Buscar por Nombre, SKU..."
-                className="pl-8 pr-8 bg-white border-zinc-200"
+        <div className="flex w-full max-w-sm flex-col gap-2">
+            <div className="relative w-full">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="text"
+                    value={searchTerm}
+                    onChange={onChange}
+                    placeholder="Buscar por Nombre, SKU..."
+                    className="pl-8 pr-8 bg-background border-border"
+                />
+                {searchTerm && (
+                    <button
+                        onClick={clearSearch}
+                        className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-muted-foreground focus:outline-none cursor-pointer transition-colors"
+                        aria-label="Borrar búsqueda"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                )}
+            </div>
+            <BarcodeScannerButton
+                onDetected={handleDetected}
+                className="w-full"
+                dialogDescription="Apuntá la cámara al código del producto para buscarlo en el inventario."
             />
-            {searchTerm && (
-                <button
-                    onClick={clearSearch}
-                    className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 focus:outline-none cursor-pointer transition-colors"
-                    aria-label="Borrar búsqueda"
-                >
-                    <X className="h-4 w-4" />
-                </button>
-            )}
         </div>
     );
 }

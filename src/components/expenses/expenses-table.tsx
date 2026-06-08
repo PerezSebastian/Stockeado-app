@@ -56,24 +56,25 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
     };
 
     const getCategoryIcon = (cat: string) => {
-        switch (cat) {
-            case "LUZ": return <TrendingUp className="w-4 h-4 text-yellow-500" />;
-            case "GAS": return <Flame className="w-4 h-4 text-orange-500" />;
-            case "AGUA": return <Droplets className="w-4 h-4 text-blue-500" />;
-            case "INTERNET": return <Wifi className="w-4 h-4 text-indigo-500" />;
-            case "ALQUILER": return <Home className="w-4 h-4 text-emerald-600" />;
-            case "SUELDOS": return <Briefcase className="w-4 h-4 text-zinc-600" />;
-            case "IMPUESTOS": return <Landmark className="w-4 h-4 text-rose-500" />;
-            default: return <Box className="w-4 h-4 text-zinc-400" />;
+        const c = cat?.toUpperCase();
+        switch (c) {
+            case "LUZ": return <TrendingUp className="w-4 h-4 text-warning" />;
+            case "GAS": return <Flame className="w-4 h-4 text-warning" />;
+            case "AGUA": return <Droplets className="w-4 h-4 text-primary" />;
+            case "INTERNET": return <Wifi className="w-4 h-4 text-primary" />;
+            case "ALQUILER": return <Home className="w-4 h-4 text-success" />;
+            case "SUELDOS": return <Briefcase className="w-4 h-4 text-muted-foreground" />;
+            case "IMPUESTOS": return <Landmark className="w-4 h-4 text-danger-soft-foreground" />;
+            default: return <Box className="w-4 h-4 text-muted-foreground" />;
         }
     };
 
     if (!expenses.length) {
-        return <div className="p-8 text-center text-zinc-500">No hay gastos fijos registrados.</div>;
+        return <div className="p-8 text-center text-muted-foreground">No hay gastos fijos registrados.</div>;
     }
 
     return (
-        <div className="rounded-md border bg-white overflow-x-auto">
+        <div className="rounded-md border bg-background overflow-x-auto">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -92,19 +93,19 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                             <TableRow key={e.id}>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 rounded-md bg-zinc-50">
-                                            {getCategoryIcon(e.category)}
+                                        <div className="p-2 rounded-md bg-surface-subtle">
+                                            {getCategoryIcon(e.categoryName)}
                                         </div>
                                         <div>
-                                            <div className="font-medium text-zinc-900">{e.description}</div>
-                                            <div className="text-xs text-zinc-500">{e.category}</div>
+                                            <div className="font-medium text-foreground">{e.description}</div>
+                                            <div className="text-xs text-muted-foreground">{e.categoryName}</div>
                                         </div>
                                     </div>
                                 </TableCell>
-                                <TableCell className="font-medium text-zinc-700">
+                                <TableCell className="font-medium text-foreground">
                                     ${Number(e.amount).toLocaleString("es-AR")}
                                 </TableCell>
-                                <TableCell className="text-zinc-600">
+                                <TableCell className="text-muted-foreground">
                                     {format(new Date(e.dueDate), "dd MMM, yyyy", { locale: es })}
                                 </TableCell>
                                 <TableCell>
@@ -114,7 +115,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                                             onCheckedChange={() => handleToggle(e.id, isPaid)}
                                             className="cursor-pointer"
                                         />
-                                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isPaid ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                        <span className={`text-xs font-semibold px-2 py-1 rounded-full ${isPaid ? 'bg-success/15 text-success' : 'bg-danger-soft text-danger-soft-foreground'}`}>
                                             {isPaid ? 'Pagado' : 'Pendiente'}
                                         </span>
                                     </div>
@@ -127,7 +128,7 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
                                         variant="destructive"
                                         trigger={
                                             <Button variant="ghost" size="sm" className="cursor-pointer">
-                                                <Trash2 className="w-4 h-4 text-zinc-400 group-hover:text-rose-600 transition-colors" />
+                                                <Trash2 className="w-4 h-4 text-muted-foreground group-hover:text-danger-soft-foreground transition-colors" />
                                             </Button>
                                         }
                                         onConfirm={async () => {
@@ -143,3 +144,4 @@ export function ExpensesTable({ expenses }: ExpensesTableProps) {
         </div>
     );
 }
+

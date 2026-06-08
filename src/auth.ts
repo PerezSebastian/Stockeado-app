@@ -54,6 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                         businessId: user.businessId,
                         planStatus: user.business.planStatus,
                         isActive: user.isActive,
+                        themeMode: user.themeMode,
                     };
                 }
 

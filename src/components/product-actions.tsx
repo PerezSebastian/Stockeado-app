@@ -15,25 +15,27 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { EditProductSheet } from "@/components/edit-product-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Category } from "@prisma/client";
 
 interface Product {
     id: string;
     name: string;
     sku: string | null;
     category: string | null;
+    categoryId?: string | null;
     cost: number;
     price: number;
     stock: number;
     minStock: number;
-    isPublic: boolean;
     isDeleted: boolean;
 }
 
 interface ProductActionsProps {
     product: Product;
+    categories: Category[];
 }
 
-export function ProductActions({ product }: ProductActionsProps) {
+export function ProductActions({ product, categories }: ProductActionsProps) {
     const [menuOpen, setMenuOpen] = useState(false);
 
     const handleDelete = async () => {
@@ -54,7 +56,7 @@ export function ProductActions({ product }: ProductActionsProps) {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-zinc-400 hover:text-zinc-900 cursor-pointer transition-colors"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                 >
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
@@ -64,7 +66,7 @@ export function ProductActions({ product }: ProductActionsProps) {
                 <DropdownMenuSeparator />
 
                 {!product.isDeleted && (
-                    <EditProductSheet product={product} onClose={() => setMenuOpen(false)} />
+                    <EditProductSheet product={product} categories={categories} onClose={() => setMenuOpen(false)} />
                 )}
 
                 {product.isDeleted ? (
@@ -75,7 +77,7 @@ export function ProductActions({ product }: ProductActionsProps) {
                         variant="default"
                         trigger={
                             <DropdownMenuItem
-                                className="cursor-pointer text-emerald-600 focus:text-emerald-600"
+                                className="cursor-pointer text-success focus:text-success"
                                 onSelect={(e) => e.preventDefault()}
                             >
                                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -92,7 +94,7 @@ export function ProductActions({ product }: ProductActionsProps) {
                         variant="destructive"
                         trigger={
                             <DropdownMenuItem
-                                className="cursor-pointer text-red-600 focus:text-red-600"
+                                className="cursor-pointer text-danger-soft-foreground focus:text-danger-soft-foreground"
                                 onSelect={(e) => e.preventDefault()}
                             >
                                 <Trash2 className="mr-2 h-4 w-4" />
@@ -106,3 +108,4 @@ export function ProductActions({ product }: ProductActionsProps) {
         </DropdownMenu>
     );
 }
+

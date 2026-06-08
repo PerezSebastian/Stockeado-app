@@ -29,11 +29,11 @@ export default async function UsersPage() {
     const session = await auth();
 
     // Server-side role guard: allow ADMIN and OWNER
-    if (!session?.user || !["ADMIN", "OWNER"].includes(session.user.role)) {
+    if (!session?.user || ![UserRole.ADMIN, UserRole.OWNER].includes(session.user.role as UserRole)) {
         redirect("/dashboard");
     }
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = session.user.role === UserRole.ADMIN;
 
     const data = await getUsers();
     if (!("users" in data) || !data.users) redirect("/dashboard");
@@ -87,8 +87,8 @@ export default async function UsersPage() {
                             )}
                             {users.map((user) => {
                                 const isCurrentUser = user.id === session.user.id;
-                                // A business is 'master' if it contains the admin@galape.com user
-                                const isMasterBusiness = user.business?.users?.some((u) => u.email === "admin@galape.com");
+                                // A business is 'master' if it contains the master admin user
+                                const isMasterBusiness = user.business?.users?.some((u) => u.email === process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL);
 
                                 // Users cannot toggle themselves. OWNER can only toggle SELLER.
                                 const canToggleUser = !isCurrentUser && (isAdmin || user.role === "SELLER");
@@ -123,16 +123,16 @@ export default async function UsersPage() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <Badge
-                                                variant={user.role === "ADMIN" ? "default" : "secondary"}
+                                                variant={user.role === UserRole.ADMIN ? "default" : "secondary"}
                                                 className={
-                                                    user.role === "ADMIN"
+                                                    user.role === UserRole.ADMIN
                                                         ? "bg-zinc-900 text-white text-xs font-bold"
-                                                        : user.role === "OWNER"
+                                                        : user.role === UserRole.OWNER
                                                             ? "bg-indigo-100 text-indigo-700 text-xs font-bold"
                                                             : "bg-zinc-100 text-zinc-700 text-xs font-bold"
                                                 }
                                             >
-                                                {user.role === "ADMIN" ? "Admin" : user.role === "OWNER" ? "Dueño" : "Vendedor"}
+                                                {user.role === UserRole.ADMIN ? "Admin" : user.role === UserRole.OWNER ? "Dueño" : "Vendedor"}
                                             </Badge>
                                         </td>
                                         {isAdmin && (
@@ -175,7 +175,7 @@ export default async function UsersPage() {
                                                     <ToggleUserButton
                                                         userId={user.id}
                                                         isActive={user.isActive}
-                                                        isAdmin={user.email === "admin@galape.com"}
+                                                        isAdmin={user.email === process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL}
                                                     />
                                                 )}
 

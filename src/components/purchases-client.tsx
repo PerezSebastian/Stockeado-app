@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useDebounce } from "use-debounce";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -52,15 +53,17 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
     const [loading, setLoading] = useState(false);
 
     // Filtrado en cliente
+    const [debouncedSearch] = useDebounce(search, 300);
+
     const filtered = useMemo(() => {
-        const q = search.toLowerCase().trim();
+        const q = debouncedSearch.toLowerCase().trim();
         if (!q) return products;
         return products.filter(
             (p) =>
                 p.name.toLowerCase().includes(q) ||
                 (p.sku ?? "").toLowerCase().includes(q)
         );
-    }, [products, search]);
+    }, [products, debouncedSearch]);
 
     const addToCart = (product: Product) => {
         setCart((curr) => {
@@ -136,18 +139,18 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
             {/* ── Panel Izquierdo: Catálogo ── */}
             <div className="flex-1 flex flex-col space-y-4 min-w-0">
                 <div className="relative w-full">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Buscar producto por nombre o SKU..."
-                        className="pl-8 bg-white border-zinc-200 shadow-sm"
+                        className="pl-8 bg-background border-border shadow-sm"
                     />
                 </div>
 
                 {filtered.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center flex-1 text-zinc-400 gap-2">
+                    <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground gap-2">
                         <Search className="h-10 w-10 opacity-20" />
                         <p className="text-sm">No se encontraron productos</p>
                     </div>
@@ -158,23 +161,23 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                             return (
                                 <Card
                                     key={p.id}
-                                    className={`transition-all border-2 bg-white ${inCart
+                                    className={`transition-all border-2 bg-background ${inCart
                                         ? "cursor-pointer border-emerald-600 shadow-md"
-                                        : "cursor-pointer border-zinc-200 hover:border-emerald-400 hover:shadow-sm"
+                                        : "cursor-pointer border-border hover:border-emerald-400 hover:shadow-sm"
                                         }`}
                                     onClick={() => addToCart(p)}
                                 >
                                     <CardContent className="p-3 flex flex-col justify-between h-full space-y-3">
                                         <div>
-                                            <p className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
+                                            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                                                 {p.sku || "—"}
                                             </p>
-                                            <p className="font-semibold text-sm leading-tight text-zinc-800 line-clamp-2 mt-0.5">
+                                            <p className="font-semibold text-sm leading-tight text-foreground line-clamp-2 mt-0.5">
                                                 {p.name}
                                             </p>
                                         </div>
                                         <div className="flex items-end justify-between gap-1 flex-wrap">
-                                            <span className="font-bold text-sm text-zinc-500">
+                                            <span className="font-bold text-sm text-muted-foreground">
                                                 Stock: {p.stock}
                                             </span>
                                         </div>
@@ -187,15 +190,15 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
             </div>
 
             {/* ── Panel Derecho: Resumen de Compra ── */}
-            <div className="w-full lg:w-[450px] flex flex-col bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm shrink-0">
+            <div className="w-full lg:w-[450px] flex flex-col bg-background rounded-xl border border-border overflow-hidden shadow-sm shrink-0">
                 {/* Header ticket */}
-                <div className="p-4 bg-zinc-50/80 border-b border-zinc-200 flex justify-between items-center">
-                    <h2 className="font-semibold text-zinc-800 tracking-tight flex items-center gap-2">
+                <div className="p-4 bg-surface-subtle/80 border-b border-border flex justify-between items-center">
+                    <h2 className="font-semibold text-foreground tracking-tight flex items-center gap-2">
                         <Truck className="h-4 w-4" />
                         Detalle de Ingreso
                     </h2>
                     {cartCount > 0 && (
-                        <span className="text-xs font-semibold bg-emerald-600 text-white px-2 py-0.5 rounded-full">
+                        <span className="text-xs font-semibold bg-success text-primary-foreground px-2 py-0.5 rounded-full">
                             {cartCount} uds.
                         </span>
                     )}
@@ -204,22 +207,22 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                 {/* Items del carrito */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
                     {cart.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-zinc-400 space-y-2">
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
                             <Truck className="h-12 w-12 opacity-20" />
                             <p className="text-sm">El listado está vacío</p>
                             <p className="text-xs text-center">Hacé clic en un producto para agregarlo al remito</p>
                         </div>
                     ) : (
                         cart.map((item) => (
-                            <div key={item.id} className="flex flex-col gap-2 border border-zinc-100 bg-zinc-50/50 p-3 rounded-lg">
+                            <div key={item.id} className="flex flex-col gap-2 border border-border bg-surface-subtle/50 p-3 rounded-lg">
                                 <div className="flex justify-between items-start">
-                                    <p className="text-sm font-semibold leading-tight text-zinc-800">
+                                    <p className="text-sm font-semibold leading-tight text-foreground">
                                         {item.name}
                                     </p>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-6 w-6 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 -mt-1 -mr-1"
+                                        className="h-6 w-6 rounded-full text-danger-soft-foreground hover:text-danger-soft-foreground hover:bg-danger-soft -mt-1 -mr-1"
                                         onClick={() => removeItem(item.id)}
                                     >
                                         <Trash2 className="h-3 w-3" />
@@ -228,9 +231,9 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
 
                                 <div className="flex gap-4 items-center mt-2">
                                     <div className="flex-1">
-                                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Costo Univ.</label>
+                                        <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Costo Univ.</label>
                                         <div className="relative">
-                                            <span className="absolute left-2 top-2 text-zinc-500 text-xs">$</span>
+                                            <span className="absolute left-2 top-2 text-muted-foreground text-xs">$</span>
                                             <Input
                                                 type="number"
                                                 min="0"
@@ -242,7 +245,7 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                                         </div>
                                     </div>
                                     <div className="w-24 shrink-0">
-                                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Cantidad</label>
+                                        <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Cantidad</label>
                                         <div className="flex items-center gap-1">
                                             <Button
                                                 variant="outline" size="icon" className="h-8 w-8 rounded"
@@ -262,8 +265,8 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                                         </div>
                                     </div>
                                     <div className="text-right w-20 shrink-0">
-                                        <label className="text-[10px] uppercase font-bold text-zinc-400 mb-1 block">Subtotal</label>
-                                        <span className="font-bold text-sm text-zinc-900">
+                                        <label className="text-[10px] uppercase font-bold text-muted-foreground mb-1 block">Subtotal</label>
+                                        <span className="font-bold text-sm text-foreground">
                                             ${(item.unitCost * item.qty).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </span>
                                     </div>
@@ -274,17 +277,17 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                 </div>
 
                 {/* Footer con total y botón */}
-                <div className="p-4 bg-zinc-50 border-t border-zinc-200 space-y-4">
+                <div className="p-4 bg-surface-subtle border-t border-border space-y-4">
                     <div className="flex justify-between items-baseline">
-                        <span className="text-zinc-500 text-sm font-semibold">Inversión Total</span>
-                        <span className="text-3xl font-black tracking-tight text-emerald-600">
+                        <span className="text-muted-foreground text-sm font-semibold">Inversión Total</span>
+                        <span className="text-3xl font-black tracking-tight text-success">
                             ${total.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                     </div>
                     <Button
                         disabled={cart.length === 0}
                         onClick={() => setCheckoutOpen(true)}
-                        className="w-full h-12 text-base font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+                        className="w-full h-12 text-base font-semibold bg-success hover:bg-success/90 text-primary-foreground shadow-md"
                     >
                         <CheckCircle2 className="w-4 h-4 mr-2" />
                         Finalizar Ingreso
@@ -303,36 +306,36 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                     </DialogHeader>
 
                     <div className="space-y-4 py-2">
-                        <div className="flex items-center justify-between px-1 border-b border-zinc-100 pb-3">
-                            <span className="text-zinc-500 font-semibold">Inversión Final</span>
-                            <span className="font-black text-2xl text-emerald-600">
+                        <div className="flex items-center justify-between px-1 border-b border-border pb-3">
+                            <span className="text-muted-foreground font-semibold">Inversión Final</span>
+                            <span className="font-black text-2xl text-success">
                                 ${total.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                         </div>
 
                         {/* Proveedor */}
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-zinc-700">
-                                Proveedor <span className="font-normal text-zinc-400">(opcional)</span>
+                            <label className="text-sm font-semibold text-foreground">
+                                Proveedor <span className="font-normal text-muted-foreground">(opcional)</span>
                             </label>
                             <Input
                                 placeholder="Ej: Distribuidora Mayorista S.A."
                                 value={supplierName}
                                 onChange={(e) => setSupplierName(e.target.value)}
-                                className="bg-white border-zinc-200"
+                                className="bg-background border-border"
                             />
                         </div>
 
                         {/* Notas */}
                         <div className="space-y-1.5">
-                            <label className="text-sm font-semibold text-zinc-700">
-                                Notas de remito <span className="font-normal text-zinc-400">(opcional)</span>
+                            <label className="text-sm font-semibold text-foreground">
+                                Notas de remito <span className="font-normal text-muted-foreground">(opcional)</span>
                             </label>
                             <Input
                                 placeholder="Ej: Factura Nº 0001-00004512"
                                 value={notes}
                                 onChange={(e) => setNotes(e.target.value)}
-                                className="bg-white border-zinc-200"
+                                className="bg-background border-border"
                             />
                         </div>
                     </div>
@@ -348,7 +351,7 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
                         <Button
                             onClick={handleCheckout}
                             disabled={loading}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            className="bg-success hover:bg-success/90 text-primary-foreground"
                         >
                             <CheckCircle2 className="mr-2 h-4 w-4" />
                             {loading ? "Registrando..." : "Registrar Compra"}
@@ -359,3 +362,4 @@ export function PurchasesClient({ products }: PurchasesClientProps) {
         </div>
     );
 }
+

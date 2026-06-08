@@ -1,40 +1,66 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CategorySearchSelect } from "@/components/category-search-select";
 import { Plus } from "lucide-react";
 import { createExpense } from "@/actions/expenses";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { ExpenseCategory } from "@prisma/client";
+import { Category } from "@prisma/client";
 
-export function AddExpenseModal() {
+const LEGACY_EXPENSE_CATEGORIES = [
+    "LUZ",
+    "GAS",
+    "INTERNET",
+    "ALQUILER",
+    "AGUA",
+    "SUELDOS",
+    "IMPUESTOS",
+    "OTROS",
+];
+
+interface AddExpenseModalProps {
+    categories: Category[];
+}
+
+export function AddExpenseModal({ categories }: AddExpenseModalProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const defaultCategoryId = categories.find((category) => category.type === "EXPENSE")?.id ?? "";
+    const expenseCategoryOptions = categories
+        .filter((category) => category.type === "EXPENSE" && category.isActive !== false)
+        .map((category) => ({
+            label: category.name,
+            value: category.id,
+        }));
+    const categoryOptions = expenseCategoryOptions.length > 0
+        ? expenseCategoryOptions
+        : LEGACY_EXPENSE_CATEGORIES.map((category) => ({
+            label: category.toLowerCase(),
+            value: category,
+        }));
 
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState("");
-    const [category, setCategory] = useState<ExpenseCategory>("OTROS");
-    const [dueDate, setDueDate] = useState("");
-
-    useEffect(() => {
-        // Set the initial date to today ONLY on the client to avoid hydration mismatch
-        setDueDate(new Date().toISOString().split("T")[0]);
-    }, []);
+    const [categoryId, setCategoryId] = useState<string>(defaultCategoryId);
+    const [dueDate, setDueDate] = useState(() => new Date().toISOString().split("T")[0]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
+        const selectedCat = categories.find(c => c.id === categoryId);
+
         const res = await createExpense({
             description,
             amount: Number(amount),
-            category,
+            category: selectedCat?.name || "OTROS",
+            categoryId,
             dueDate: new Date(dueDate),
         });
 
@@ -54,7 +80,7 @@ export function AddExpenseModal() {
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button className="bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+                <Button className="bg-success hover:bg-success/90 text-primary-foreground cursor-pointer">
                     <Plus className="w-4 h-4 mr-2" /> Agregar Gasto Fijo
                 </Button>
             </DialogTrigger>
@@ -90,21 +116,13 @@ export function AddExpenseModal() {
 
                         <div className="space-y-2">
                             <Label>Categoría</Label>
-                            <Select value={category} onValueChange={(val: any) => setCategory(val)}>
-                                <SelectTrigger className="cursor-pointer">
-                                    <SelectValue placeholder="Seleccione..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {Object.values(ExpenseCategory).map((catStr) => {
-                                        const cat = catStr as string;
-                                        return (
-                                            <SelectItem key={cat} value={cat}>
-                                                {cat.charAt(0) + cat.slice(1).toLowerCase()}
-                                            </SelectItem>
-                                        );
-                                    })}
-                                </SelectContent>
-                            </Select>
+                            <CategorySearchSelect
+                                emptyMessage="No hay categorias configuradas"
+                                onValueChange={setCategoryId}
+                                options={categoryOptions}
+                                placeholder="Seleccione..."
+                                value={categoryId}
+                            />
                         </div>
                     </div>
 
@@ -118,7 +136,7 @@ export function AddExpenseModal() {
                         />
                     </div>
 
-                    <Button type="submit" disabled={loading} className="w-full bg-zinc-800 text-white hover:bg-zinc-700 cursor-pointer">
+                    <Button type="submit" disabled={loading} className="w-full bg-primary/90 text-primary-foreground hover:bg-primary/90 cursor-pointer">
                         {loading ? "Guardando..." : "Guardar Gasto Fijo"}
                     </Button>
                 </form>
@@ -126,3 +144,4 @@ export function AddExpenseModal() {
         </Dialog>
     );
 }
+

@@ -9,12 +9,12 @@ import type { Product } from "@prisma/client";
 const ProductSchema = z.object({
     name: z.string().min(1, "El nombre es requerido").max(200, "El nombre es demasiado largo"),
     sku: z.string().max(100, "El SKU es demasiado largo").optional(),
-    category: z.string().max(100, "La categoría es demasiado larga").optional(),
+    category: z.string().max(100, "La categoría es demasiado larga").optional(), // Legacy
+    categoryId: z.string().uuid("Selecciona una categoría válida").optional().nullable(),
     cost: z.coerce.number().min(0, "El costo no puede ser negativo"),
     price: z.coerce.number().min(0, "El precio no puede ser negativo"),
     stock: z.coerce.number().int().min(0, "El stock no puede ser negativo"),
     minStock: z.coerce.number().int().min(0, "El stock mínimo no puede ser negativo"),
-    isPublic: z.boolean().default(false),
 });
 
 function serializeProduct(p: Product) {
@@ -25,7 +25,7 @@ function serializeProduct(p: Product) {
     };
 }
 
-export async function getProducts(query?: string, page: number = 1, limit: number = 10) {
+export async function getProducts(query?: string, page: number = 1, limit: number = 10, categoryId?: string) {
     const session = await auth();
     if (!session?.user?.businessId) {
         return { error: "No autorizado o sin negocio vinculado" };
@@ -38,6 +38,10 @@ export async function getProducts(query?: string, page: number = 1, limit: numbe
             businessId: session.user.businessId,
         };
 
+        if (categoryId && categoryId !== "all") {
+            whereClause.categoryId = categoryId;
+        }
+
         if (query) {
             whereClause.OR = [
                 { name: { contains: query } },
@@ -49,6 +53,11 @@ export async function getProducts(query?: string, page: number = 1, limit: numbe
             db.product.count({ where: whereClause }),
             db.product.findMany({
                 where: whereClause,
+                include: {
+                    categoryRel: {
+                        select: { name: true }
+                    }
+                },
                 orderBy: {
                     createdAt: "desc"
                 },
@@ -79,7 +88,7 @@ export async function createProduct(values: z.infer<typeof ProductSchema>) {
         return { error: firstError?.message ?? "Campos inválidos" };
     }
 
-    const { name, sku, category, cost, price, stock, minStock, isPublic } = validatedFields.data;
+        const { name, sku, category, categoryId, cost, price, stock, minStock } = validatedFields.data;
     const businessId = session.user.businessId!;
 
     // ── Validación: SKU único dentro del negocio ──
@@ -104,12 +113,22 @@ export async function createProduct(values: z.infer<typeof ProductSchema>) {
                     name: name.trim(),
                     sku: sku?.trim() || null,
                     category: category?.trim() || null,
+                    categoryId: categoryId || null,
                     cost,
                     price,
                     stock,
                     minStock,
-                    isPublic,
                     businessId,
+                }
+            });
+
+            // ── Crear la entrada correspondiente en el catálogo de productos (1 a 1) ──
+            await tx.productCatalog.create({
+                data: {
+                    productId: newProduct.id,
+                    businessId,
+                    isPublic: true,
+                    isDeleted: false,
                 }
             });
 
@@ -152,7 +171,7 @@ export async function updateProduct(id: string, values: z.infer<typeof ProductSc
         return { error: firstError?.message ?? "Campos inválidos" };
     }
 
-    const { name, sku, category, cost, price, stock, minStock, isPublic } = validatedFields.data;
+        const { name, sku, category, categoryId, cost, price, stock, minStock } = validatedFields.data;
     const businessId = session.user.businessId!;
 
     // ── Verificar que el producto existe, pertenece al negocio y no está dado de baja ──
@@ -188,11 +207,11 @@ export async function updateProduct(id: string, values: z.infer<typeof ProductSc
                 name: name.trim(),
                 sku: sku?.trim() || null,
                 category: category?.trim() || null,
+                categoryId: categoryId || null,
                 cost,
                 price,
                 stock,
                 minStock,
-                isPublic,
             },
         });
 
@@ -228,12 +247,37 @@ export async function deleteProduct(id: string) {
     }
 
     try {
-        await db.product.update({
-            where: { id },
-            data: { isDeleted: true },
+        await db.$transaction(async (tx) => {
+            // Actualizar el estado del producto principal
+            await tx.product.update({
+                where: { id },
+                data: { isDeleted: true },
+            });
+
+            // Actualizar defensivamente el catálogo
+            const catalogExists = await tx.productCatalog.findUnique({
+                where: { productId: id },
+            });
+
+            if (catalogExists) {
+                await tx.productCatalog.update({
+                    where: { productId: id },
+                    data: { isDeleted: true, isPublic: false },
+                });
+            } else {
+                await tx.productCatalog.create({
+                    data: {
+                        productId: id,
+                        businessId,
+                        isDeleted: true,
+                        isPublic: false,
+                    }
+                });
+            }
         });
 
         revalidatePath("/dashboard/inventory");
+        revalidatePath("/dashboard/catalog");
         return { success: "Producto dado de baja con éxito" };
     } catch (error) {
         console.error("DELETE_PRODUCT_ERROR", error);
@@ -261,12 +305,37 @@ export async function restoreProduct(id: string) {
     }
 
     try {
-        await db.product.update({
-            where: { id },
-            data: { isDeleted: false },
+        await db.$transaction(async (tx) => {
+            // Restaurar producto principal
+            await tx.product.update({
+                where: { id },
+                data: { isDeleted: false },
+            });
+
+            // Restaurar en catálogo y forzar visibilidad pública
+            const catalogExists = await tx.productCatalog.findUnique({
+                where: { productId: id },
+            });
+
+            if (catalogExists) {
+                await tx.productCatalog.update({
+                    where: { productId: id },
+                    data: { isDeleted: false, isPublic: true },
+                });
+            } else {
+                await tx.productCatalog.create({
+                    data: {
+                        productId: id,
+                        businessId,
+                        isDeleted: false,
+                        isPublic: true,
+                    }
+                });
+            }
         });
 
         revalidatePath("/dashboard/inventory");
+        revalidatePath("/dashboard/catalog");
         return { success: "Producto habilitado con éxito" };
     } catch (error) {
         console.error("RESTORE_PRODUCT_ERROR", error);

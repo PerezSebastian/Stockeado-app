@@ -1,3 +1,4 @@
+import { UserRole } from "@prisma/client";
 import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 import { NextResponse } from "next/server";
@@ -40,7 +41,7 @@ export default auth((req) => {
   }
 
   // Protect /dashboard/users for non-admin and non-owner users
-  if (isUsersRoute && userRole !== "ADMIN" && userRole !== "OWNER") {
+  if (isUsersRoute && userRole !== UserRole.ADMIN && userRole !== UserRole.OWNER) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 

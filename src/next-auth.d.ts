@@ -1,4 +1,4 @@
-import { UserRole, PlanStatus } from "@prisma/client";
+import { ThemeMode, UserRole } from "@prisma/client";
 import { DefaultSession } from "next-auth";
 import "next-auth/jwt";
 
@@ -7,6 +7,7 @@ export type ExtendedUser = DefaultSession["user"] & {
     businessId: string;
     planStatus?: string;
     isActive?: boolean;
+    themeMode?: ThemeMode;
 };
 
 declare module "next-auth" {
@@ -21,5 +22,6 @@ declare module "next-auth/jwt" {
         businessId?: string;
         planStatus?: string;
         isActive?: boolean;
+        themeMode?: ThemeMode;
     }
 }

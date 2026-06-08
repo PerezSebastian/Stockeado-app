@@ -25,25 +25,38 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { BarcodeScannerButton } from "@/components/barcode-scanner-button";
+import { CategorySearchSelect } from "@/components/category-search-select";
 import { createProduct } from "@/actions/inventory";
+import { Category } from "@prisma/client";
 
 const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido"),
     sku: z.string().min(0),
-    category: z.string().min(0),
+    category: z.string().min(0).optional(),
+    categoryId: z.string().min(1, "Selecciona una categoría"),
     cost: z.number().min(0),
     price: z.number().min(0),
     stock: z.number().int().min(0),
     minStock: z.number().int().min(0),
-    isPublic: z.boolean(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
+type CategoryWithStatus = Category & { isActive?: boolean };
 
-export function CreateProductSheet() {
+interface CreateProductSheetProps {
+    categories: CategoryWithStatus[];
+}
+
+export function CreateProductSheet({ categories }: CreateProductSheetProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const productCategoryOptions = categories
+        .filter((category) => category.type === "PRODUCT" && category.isActive !== false)
+        .map((category) => ({
+            label: category.name,
+            value: category.id,
+        }));
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productSchema),
@@ -51,11 +64,11 @@ export function CreateProductSheet() {
             name: "",
             sku: "",
             category: "",
+            categoryId: "",
             cost: 0,
             price: 0,
             stock: 0,
             minStock: 0,
-            isPublic: false,
         },
     });
 
@@ -70,7 +83,7 @@ export function CreateProductSheet() {
                 form.reset();
                 setOpen(false);
             }
-        } catch (error) {
+        } catch {
             toast.error("Error al crear el producto");
         } finally {
             setLoading(false);
@@ -80,7 +93,7 @@ export function CreateProductSheet() {
     return (
         <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
-                <Button className="shrink-0 bg-zinc-900 hover:bg-zinc-800 text-white cursor-pointer transition-transform active:scale-95">
+                <Button className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground cursor-pointer transition-transform active:scale-95">
                     <Plus className="mr-2 h-4 w-4" />
                     Añadir Producto
                 </Button>
@@ -115,7 +128,14 @@ export function CreateProductSheet() {
                                     <FormItem>
                                         <FormLabel>SKU (Opcional)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="TSH-001" {...field} />
+                                            <div className="flex flex-col gap-2">
+                                                <Input placeholder="TSH-001" {...field} />
+                                                <BarcodeScannerButton
+                                                    buttonLabel="Código"
+                                                    onDetected={(code) => field.onChange(code)}
+                                                    className="w-full"
+                                                />
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -123,12 +143,17 @@ export function CreateProductSheet() {
                             />
                             <FormField
                                 control={form.control}
-                                name="category"
+                                name="categoryId"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Categoría</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ropa" {...field} />
+                                            <CategorySearchSelect
+                                                emptyMessage="No hay categorias configuradas"
+                                                onValueChange={field.onChange}
+                                                options={productCategoryOptions}
+                                                value={field.value}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -207,31 +232,11 @@ export function CreateProductSheet() {
                                 )}
                             />
                         </div>
-                        <FormField
-                            control={form.control}
-                            name="isPublic"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
-                                    <div className="space-y-0.5">
-                                        <FormLabel>Público en Catálogo</FormLabel>
-                                        <SheetDescription>
-                                            Habilitar para mostrar en tu landing page.
-                                        </SheetDescription>
-                                    </div>
-                                    <FormControl>
-                                        <Switch
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
                         <div className="flex justify-end gap-3 pt-4">
                             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={loading} className="bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer">
+                            <Button type="submit" disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                                 {loading ? "Guardando..." : "Guardar Producto"}
                             </Button>
                         </div>
@@ -241,3 +246,4 @@ export function CreateProductSheet() {
         </Sheet>
     );
 }
+

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { auth } from "@/auth";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 
 // Get all users with their associated business (ADMIN sees all, OWNER sees own business).
 export async function getUsers(): Promise<{ error: string } | {
@@ -21,11 +21,11 @@ export async function getUsers(): Promise<{ error: string } | {
     }>[]
 }> {
     const session = await auth();
-    if (!session?.user || !["ADMIN", "OWNER"].includes(session.user.role)) {
+    if (!session?.user || ![UserRole.ADMIN, UserRole.OWNER].includes(session.user.role as UserRole)) {
         return { error: "No autorizado" };
     }
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = session.user.role === UserRole.ADMIN;
 
     const users = await db.user.findMany({
         where: isAdmin ? undefined : { businessId: session.user.businessId },
@@ -46,7 +46,7 @@ export async function getUsers(): Promise<{ error: string } | {
 
 export async function toggleUserStatusAction(userId: string, currentStatus: boolean) {
     const session = await auth();
-    if (!session?.user || !["ADMIN", "OWNER"].includes(session.user.role)) {
+    if (!session?.user || ![UserRole.ADMIN, UserRole.OWNER].includes(session.user.role as UserRole)) {
         return { error: "No autorizado" };
     }
 
@@ -55,7 +55,7 @@ export async function toggleUserStatusAction(userId: string, currentStatus: bool
         if (!user) return { error: "Usuario no encontrado" };
 
         // OWNER can only manage users in their own business
-        if (session.user.role === "OWNER" && user.businessId !== session.user.businessId) {
+        if (session.user.role === UserRole.OWNER && user.businessId !== session.user.businessId) {
             return { error: "No autorizado para gestionar usuarios de otro negocio" };
         }
 
@@ -65,12 +65,12 @@ export async function toggleUserStatusAction(userId: string, currentStatus: bool
         }
 
         // Prevent master admin from being disabled
-        if (user.email === "admin@galape.com" && currentStatus === true) {
+        if (user.email === process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL && currentStatus === true) {
             return { error: "No se puede desactivar el administrador maestro." };
         }
 
         // OWNER cannot disable other OWNERs or ADMINs
-        if (session.user.role === "OWNER" && (user.role === "ADMIN" || (user.role === "OWNER" && user.id !== session.user.id))) {
+        if (session.user.role === UserRole.OWNER && (user.role === UserRole.ADMIN || (user.role === UserRole.OWNER && user.id !== session.user.id))) {
             return { error: "No tenés permisos para desactivar este usuario." };
         }
 
@@ -94,7 +94,7 @@ export async function toggleUserStatusAction(userId: string, currentStatus: bool
 // Toggle business status (Logical deletion for the whole business) - ADMIN only
 export async function toggleBusinessStatusAction(businessId: string, currentStatus: "ACTIVE" | "INACTIVE") {
     const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!session?.user || session.user.role !== UserRole.ADMIN) {
         return { error: "No autorizado" };
     }
 
@@ -107,7 +107,7 @@ export async function toggleBusinessStatusAction(businessId: string, currentStat
         if (!business) return { error: "Negocio no encontrado" };
 
         // Prevent master admin business from being disabled
-        const isMaster = business.users.some(u => u.email === "admin@galape.com");
+        const isMaster = business.users.some(u => u.email === process.env.NEXT_PUBLIC_MASTER_ADMIN_EMAIL);
         if (isMaster && business.planStatus === "ACTIVE") {
             return { error: "No se puede dar de baja el negocio administrador maestro." };
         }
@@ -140,7 +140,7 @@ export async function toggleBusinessStatusAction(businessId: string, currentStat
 // Get all businesses for the select dropdown (ADMIN only)
 export async function getBusinesses() {
     const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
+    if (!session?.user || session.user.role !== UserRole.ADMIN) {
         return { error: "No autorizado" };
     }
 
@@ -155,18 +155,18 @@ export async function getBusinesses() {
 const createUserSchema = z.object({
     email: z.string().email("Email inválido"),
     password: z.string().min(6, "Mínimo 6 caracteres"),
-    role: z.enum(["ADMIN", "OWNER", "SELLER"]),
+    role: z.enum([UserRole.ADMIN, UserRole.OWNER, UserRole.SELLER]),
     businessId: z.string().min(1, "Selecciona un negocio"),
     newBusinessName: z.string().optional(),
 });
 
 export async function createUserAction(values: z.infer<typeof createUserSchema>) {
     const session = await auth();
-    if (!session?.user || !["ADMIN", "OWNER"].includes(session.user.role)) {
+    if (!session?.user || ![UserRole.ADMIN, UserRole.OWNER].includes(session.user.role as UserRole)) {
         return { error: "No autorizado" };
     }
 
-    const isAdmin = session.user.role === "ADMIN";
+    const isAdmin = session.user.role === UserRole.ADMIN;
 
     const validatedFields = createUserSchema.safeParse(values);
     if (!validatedFields.success) {
@@ -178,7 +178,7 @@ export async function createUserAction(values: z.infer<typeof createUserSchema>)
     // OWNER restrictions
     if (!isAdmin) {
         // OWNER cannot create ADMIN users
-        if (role === "ADMIN") {
+        if (role === UserRole.ADMIN) {
             return { error: "No tenés permisos para crear usuarios administradores." };
         }
         // OWNER can only create users in their own business

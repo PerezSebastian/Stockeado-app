@@ -10,10 +10,10 @@ export function PaymentMethodsChart({ data }: { data: any[] }) {
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-zinc-800">Métodos de Pago</CardTitle>
+                    <CardTitle className="text-foreground">Métodos de Pago</CardTitle>
                     <CardDescription>No hay datos suficientes</CardDescription>
                 </CardHeader>
-                <CardContent className="h-[300px] flex items-center justify-center text-sm text-zinc-500">
+                <CardContent className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
                     No hay registro de pagos.
                 </CardContent>
             </Card>
@@ -31,12 +31,12 @@ export function PaymentMethodsChart({ data }: { data: any[] }) {
             }
         };
         const baseColors = [
-            "#10b981", // emerald-500
-            "#3b82f6", // blue-500
-            "#facc15", // yellow-400
-            "#a855f7", // purple-500
-            "#ec4899", // pink-500
-            "#27272a", // zinc-800
+            "var(--chart-1)",
+            "var(--chart-2)",
+            "var(--chart-3)",
+            "var(--chart-4)",
+            "var(--chart-5)",
+            "var(--primary)",
         ];
 
         sortedData.forEach((item, i) => {
@@ -63,7 +63,7 @@ export function PaymentMethodsChart({ data }: { data: any[] }) {
     return (
         <Card className="flex flex-col h-full">
             <CardHeader className="items-center pb-0">
-                <CardTitle className="text-zinc-800">Métodos de Pago</CardTitle>
+                <CardTitle className="text-foreground">Métodos de Pago</CardTitle>
                 <CardDescription>Distribución de ingresos según medio</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 pb-0 mt-4">
@@ -104,14 +104,14 @@ export function PaymentMethodsChart({ data }: { data: any[] }) {
                                                 <tspan
                                                     x={viewBox.cx}
                                                     y={viewBox.cy}
-                                                    className="fill-zinc-800 text-xl font-bold"
+                                                    className="fill-foreground text-xl font-bold"
                                                 >
                                                     ${totalRevenue.toLocaleString("es-AR", { maximumFractionDigits: 0 })}
                                                 </tspan>
                                                 <tspan
                                                     x={viewBox.cx}
                                                     y={(viewBox.cy || 0) + 20}
-                                                    className="fill-zinc-400 text-xs"
+                                                    className="fill-muted-foreground text-xs"
                                                 >
                                                     Total Ingresos
                                                 </tspan>
@@ -135,8 +135,8 @@ export function PaymentMethodsChart({ data }: { data: any[] }) {
                                     className="h-3 w-3 rounded-full"
                                     style={{ backgroundColor: chartConfig[key]?.color }}
                                 />
-                                <span className="text-zinc-700 font-medium">{item.name}</span>
-                                <span className="text-zinc-500 hidden sm:inline">{percentage}%</span>
+                                <span className="text-foreground font-medium">{item.name}</span>
+                                <span className="text-muted-foreground hidden sm:inline">{percentage}%</span>
                             </div>
                         );
                     })}
@@ -145,3 +145,4 @@ export function PaymentMethodsChart({ data }: { data: any[] }) {
         </Card>
     );
 }
+

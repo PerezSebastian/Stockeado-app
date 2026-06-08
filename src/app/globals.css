@@ -17,6 +17,14 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -67,6 +75,14 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  --surface-subtle: oklch(0.985 0 0);
+  --surface-elevated: oklch(1 0 0);
+  --success: oklch(0.62 0.18 150);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.74 0.16 75);
+  --warning-foreground: oklch(0.205 0 0);
+  --danger-soft: oklch(0.97 0.02 17);
+  --danger-soft-foreground: oklch(0.5 0.17 25);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -80,6 +96,14 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --scrollbar-size: 0.72rem;
+  --scrollbar-radius: 999px;
+  --scrollbar-track: color-mix(in oklab, var(--background) 84%, var(--foreground) 16%);
+  --scrollbar-thumb: color-mix(in oklab, var(--foreground) 26%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 38%, transparent);
+  --scrollbar-thumb-active: color-mix(in oklab, var(--foreground) 48%, transparent);
+  --scrollbar-thumb-border: color-mix(in oklab, var(--background) 82%, transparent);
+  --assistant-launcher-safe-area-bottom: 0px;
 }
 
 .dark {
@@ -101,6 +125,14 @@
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
+  --surface-subtle: oklch(0.205 0 0);
+  --surface-elevated: oklch(0.24 0 0);
+  --success: oklch(0.7 0.16 150);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.8 0.14 75);
+  --warning-foreground: oklch(0.145 0 0);
+  --danger-soft: oklch(0.27 0.03 20);
+  --danger-soft-foreground: oklch(0.82 0.08 25);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -114,24 +146,84 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --scrollbar-track: color-mix(in oklab, var(--background) 88%, var(--foreground) 12%);
+  --scrollbar-thumb: color-mix(in oklab, var(--foreground) 22%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklab, var(--foreground) 32%, transparent);
+  --scrollbar-thumb-active: color-mix(in oklab, var(--foreground) 42%, transparent);
+  --scrollbar-thumb-border: color-mix(in oklab, var(--background) 78%, transparent);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   }
   body {
     @apply bg-background text-foreground;
   }
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
 }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e4e4e7;
-  border-radius: 10px;
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--scrollbar-radius);
 }
-.custom-scrollbar::-webkit-scrollbar-track {
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 0.18rem solid var(--scrollbar-thumb-border);
+  border-radius: var(--scrollbar-radius);
+  min-height: 2.5rem;
+  transition: background-color 180ms ease, border-color 180ms ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+*::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 0.18rem solid var(--scrollbar-thumb-border);
+  border-radius: var(--scrollbar-radius);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+body[data-assistant-launcher-safe-area="true"] {
+  --assistant-launcher-safe-area-bottom: 6.5rem;
+}
+
+@media (min-width: 768px) {
+  body[data-assistant-launcher-safe-area="true"] {
+    --assistant-launcher-safe-area-bottom: 8.5rem;
+  }
 }

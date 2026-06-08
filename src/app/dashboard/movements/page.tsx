@@ -27,8 +27,8 @@ export default async function MovementsPage({
 
     if (error) {
         return (
-            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-zinc-200 bg-white">
-                <p className="text-zinc-500">{error}</p>
+            <div className="flex h-[400px] items-center justify-center rounded-md border border-dashed border-border bg-background">
+                <p className="text-muted-foreground">{error}</p>
             </div>
         );
     }
@@ -37,8 +37,8 @@ export default async function MovementsPage({
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-zinc-900">Movimientos de Stock</h1>
-                    <p className="text-zinc-500">Historial completo de entradas y salidas de stock.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground">Movimientos de Stock</h1>
+                    <p className="text-muted-foreground">Historial completo de entradas y salidas de stock.</p>
                 </div>
             </div>
 
@@ -48,11 +48,11 @@ export default async function MovementsPage({
             </div>
 
             {/* Unified Card Container */}
-            <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+            <div className="bg-background border border-border rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
                 <div className="w-full">
                     <Table>
                         <TableHeader>
-                            <TableRow className="bg-zinc-50/50">
+                            <TableRow className="bg-surface-subtle/50">
                                 <TableHead className="text-center">Fecha y Hora</TableHead>
                                 <TableHead className="text-center">SKU</TableHead>
                                 <TableHead className="text-left">Producto</TableHead>
@@ -64,38 +64,38 @@ export default async function MovementsPage({
                         <TableBody>
                             {!movements || movements.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={6} className="h-32 text-center text-zinc-500">
+                                    <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
                                         No se encontraron movimientos de stock.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 movements.map((m) => (
-                                    <TableRow key={m.id} className="hover:bg-zinc-50/50 transition-colors border-zinc-100">
-                                        <TableCell className="text-center text-zinc-500 text-sm">
+                                    <TableRow key={m.id} className="hover:bg-surface-subtle/50 transition-colors border-border">
+                                        <TableCell className="text-center text-muted-foreground text-sm">
                                             {format(new Date(m.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}
                                         </TableCell>
-                                        <TableCell className="text-center font-medium text-zinc-500 text-xs uppercase tracking-wider">
+                                        <TableCell className="text-center font-medium text-muted-foreground text-xs uppercase tracking-wider">
                                             {m.product.sku || "N/A"}
                                         </TableCell>
-                                        <TableCell className="text-left font-semibold text-zinc-900">
+                                        <TableCell className="text-left font-semibold text-foreground">
                                             {m.product.name}
                                         </TableCell>
                                         <TableCell className="text-center">
                                             {m.type === "IN" ? (
-                                                <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border border-emerald-200 font-medium">
+                                                <Badge className="bg-success/15 text-success hover:bg-success/15 border border-success/20 font-medium">
                                                     Entrada
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="destructive" className="bg-rose-50 text-rose-700 hover:bg-rose-50 border-rose-200 font-medium">
+                                                <Badge variant="destructive" className="bg-danger-soft text-danger-soft-foreground hover:bg-danger-soft border-danger-soft-foreground/20 font-medium">
                                                     Salida
                                                 </Badge>
                                             )}
                                         </TableCell>
-                                        <TableCell className={`text-center font-mono font-bold ${m.type === "IN" ? "text-emerald-600" : "text-rose-600"
+                                        <TableCell className={`text-center font-mono font-bold ${m.type === "IN" ? "text-success" : "text-danger-soft-foreground"
                                             }`}>
                                             {m.type === "IN" ? "+" : "-"}{m.quantity}
                                         </TableCell>
-                                        <TableCell className="text-left text-zinc-600 text-sm">
+                                        <TableCell className="text-left text-muted-foreground text-sm">
                                             {m.reason || "Sin especificar"}
                                         </TableCell>
                                     </TableRow>
@@ -107,7 +107,7 @@ export default async function MovementsPage({
 
                 {/* Pagination footer */}
                 {movements && movements.length > 0 && (
-                    <div className="border-t border-zinc-100 bg-zinc-50/10">
+                    <div className="border-t border-border bg-surface-subtle/10">
                         <PaginationControl
                             currentPage={page}
                             limit={limit}
@@ -120,3 +120,4 @@ export default async function MovementsPage({
         </div>
     );
 }
+

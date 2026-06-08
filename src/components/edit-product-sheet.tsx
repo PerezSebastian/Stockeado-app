@@ -25,22 +25,25 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { BarcodeScannerButton } from "@/components/barcode-scanner-button";
+import { CategorySearchSelect } from "@/components/category-search-select";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { updateProduct } from "@/actions/inventory";
+import { Category } from "@prisma/client";
 
 const productSchema = z.object({
     name: z.string().min(1, "El nombre es requerido"),
     sku: z.string().min(0),
-    category: z.string().min(0),
+    category: z.string().min(0).optional(),
+    categoryId: z.string().min(1, "Selecciona una categoría"),
     cost: z.number().min(0),
     price: z.number().min(0),
     stock: z.number().int().min(0),
     minStock: z.number().int().min(0),
-    isPublic: z.boolean(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
+type CategoryWithStatus = Category & { isActive?: boolean };
 
 interface EditProductSheetProps {
     product: {
@@ -48,18 +51,25 @@ interface EditProductSheetProps {
         name: string;
         sku: string | null;
         category: string | null;
+        categoryId?: string | null;
         cost: number;
         price: number;
         stock: number;
         minStock: number;
-        isPublic: boolean;
     };
+    categories: CategoryWithStatus[];
     onClose?: () => void;
 }
 
-export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
+export function EditProductSheet({ product, categories, onClose }: EditProductSheetProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const productCategoryOptions = categories
+        .filter((category) => category.type === "PRODUCT" && category.isActive !== false)
+        .map((category) => ({
+            label: category.name,
+            value: category.id,
+        }));
 
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productSchema),
@@ -67,11 +77,11 @@ export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
             name: product.name,
             sku: product.sku ?? "",
             category: product.category ?? "",
+            categoryId: product.categoryId ?? "",
             cost: product.cost,
             price: product.price,
             stock: product.stock,
             minStock: product.minStock,
-            isPublic: product.isPublic,
         },
     });
 
@@ -81,11 +91,11 @@ export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
             name: product.name,
             sku: product.sku ?? "",
             category: product.category ?? "",
+            categoryId: product.categoryId ?? "",
             cost: product.cost,
             price: product.price,
             stock: product.stock,
             minStock: product.minStock,
-            isPublic: product.isPublic,
         });
     }, [product, form]);
 
@@ -151,7 +161,14 @@ export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
                                     <FormItem>
                                         <FormLabel>SKU (Opcional)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="TSH-001" {...field} />
+                                            <div className="flex flex-col gap-2">
+                                                <Input placeholder="TSH-001" {...field} />
+                                                <BarcodeScannerButton
+                                                    buttonLabel="Código"
+                                                    onDetected={(code) => field.onChange(code)}
+                                                    className="w-full"
+                                                />
+                                            </div>
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -159,12 +176,17 @@ export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
                             />
                             <FormField
                                 control={form.control}
-                                name="category"
+                                name="categoryId"
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Categoría</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ropa" {...field} />
+                                            <CategorySearchSelect
+                                                emptyMessage="No hay categorias configuradas"
+                                                onValueChange={field.onChange}
+                                                options={productCategoryOptions}
+                                                value={field.value}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -243,31 +265,11 @@ export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
                                 )}
                             />
                         </div>
-                        <FormField
-                            control={form.control}
-                            name="isPublic"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">
-                                    <div className="space-y-0.5">
-                                        <FormLabel>Público en Catálogo</FormLabel>
-                                        <SheetDescription>
-                                            Habilitar para mostrar en tu landing page.
-                                        </SheetDescription>
-                                    </div>
-                                    <FormControl>
-                                        <Switch
-                                            checked={field.value}
-                                            onCheckedChange={field.onChange}
-                                        />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
                         <div className="flex justify-end gap-3 pt-4">
                             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="cursor-pointer">
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={loading} className="bg-zinc-900 text-white hover:bg-zinc-800 cursor-pointer">
+                            <Button type="submit" disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer">
                                 {loading ? "Guardando..." : "Guardar Cambios"}
                             </Button>
                         </div>
@@ -277,3 +279,4 @@ export function EditProductSheet({ product, onClose }: EditProductSheetProps) {
         </Sheet>
     );
 }
+

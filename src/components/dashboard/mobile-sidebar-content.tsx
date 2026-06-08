@@ -1,25 +1,27 @@
 "use client";
 
-import { NavLinks } from "./nav-links";
 import { LogoutButton } from "@/components/logout-button";
+import { NavLinks } from "./nav-links";
 
 interface MobileSidebarContentProps {
-    role?: string;
-    onClose: () => void;
+  role?: string;
+  onClose: () => void;
 }
 
 export function MobileSidebarContent({ role, onClose }: MobileSidebarContentProps) {
-    return (
-        <>
-            <div className="p-6 border-b bg-white">
-                <h2 className="font-black tracking-tighter text-xl text-zinc-900 line-clamp-1">Stockeado</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 bg-white/50">
-                <NavLinks role={role} onClick={onClose} />
-            </div>
-            <div className="p-4 border-t bg-zinc-50">
-                <LogoutButton />
-            </div>
-        </>
-    );
+  return (
+    <>
+      <div className="border-b border-sidebar-border bg-sidebar p-6">
+        <h2 className="line-clamp-1 text-xl font-black tracking-tighter text-sidebar-foreground">
+          Stockeado
+        </h2>
+      </div>
+      <div className="flex-1 overflow-y-auto bg-sidebar/80 p-4">
+        <NavLinks role={role} onClick={onClose} />
+      </div>
+      <div className="border-t border-sidebar-border bg-sidebar p-4">
+        <LogoutButton />
+      </div>
+    </>
+  );
 }

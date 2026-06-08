@@ -14,6 +14,8 @@ model Business {
   logoPath       String?
   planStatus     PlanStatus      @default(ACTIVE)
   subscriptionId String?
+  apiKey         String          @unique @default("")
+  domain         String?         @unique
   
   users          User[]
   products       Product[]
@@ -22,6 +24,13 @@ model Business {
   bookings       Booking[]
   stockMovements StockMovement[]
   fixedExpenses  FixedExpense[]
+  categories     Category[]
+  paymentMethods PaymentMethod[]
+  assistantConversations AssistantConversation[]
+  assistantPendingActions AssistantPendingAction[]
+  assistantAuditLogs AssistantAuditLog[]
+  productCatalogs ProductCatalog[]
+  catalogAttributes CatalogAttribute[]
   
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
@@ -33,31 +42,56 @@ model User {
   password   String
   role       UserRole @default(SELLER)
   isActive   Boolean  @default(true)
+  themeMode  ThemeMode @default(LIGHT)
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assistantConversations AssistantConversation[]
+  assistantPendingActions AssistantPendingAction[]
+  assistantAuditLogs AssistantAuditLog[]
   
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+model Category {
+  id         String       @id @default(uuid())
+  name       String
+  type       CategoryType @default(PRODUCT)
+  
+  businessId String
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  products   Product[]
+  expenses   FixedExpense[]
+  
+  isActive   Boolean      @default(true)
+  
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 model Product {
   id         String   @id @default(uuid())
   name       String
   sku        String?
-  category   String?
+  category   String?  // Keep legacy for now
   cost       Decimal  @db.Decimal(10, 2)
   price      Decimal  @db.Decimal(10, 2)
   stock      Int      @default(0)
   minStock   Int      @default(0)
-  isPublic   Boolean  @default(false)
   isDeleted  Boolean  @default(false)
   
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   
+  categoryId String?
+  categoryRel Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
   stockMovements StockMovement[]
   saleItems      SaleItem[]
   purchaseItems  PurchaseItem[]
+  
+  catalog        ProductCatalog?
 
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -70,7 +104,7 @@ model StockMovement {
   reason     String?
   
   productId  String
-  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
   
   businessId String
   business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
@@ -78,16 +112,33 @@ model StockMovement {
   createdAt  DateTime     @default(now())
 }
 
+model PaymentMethod {
+  id         String   @id @default(uuid())
+  name       String
+  isActive   Boolean  @default(true)
+  
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  sales      Sale[]
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model Sale {
   id            String     @id @default(uuid())
   total         Decimal    @db.Decimal(10, 2)
-  paymentMethod String
+  paymentMethod String?     // Keep legacy for now
   notes         String?
 
   items         SaleItem[]
 
   businessId    String
   business      Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  paymentMethodId String?
+  paymentMethodRel PaymentMethod? @relation(fields: [paymentMethodId], references: [id], onDelete: SetNull)
 
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -102,7 +153,7 @@ model SaleItem {
   sale        Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
   productId   String
-  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     Product @relation(fields: [productId], references: [id], onDelete: Restrict)
 }
 
 model Booking {
@@ -142,12 +193,17 @@ model PurchaseItem {
   purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
   
   productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
 }
 
 enum PlanStatus {
   ACTIVE
   INACTIVE
+}
+
+enum ThemeMode {
+  LIGHT
+  DARK
 }
 
 enum UserRole {
@@ -182,7 +238,7 @@ model FixedExpense {
   id          String          @id @default(uuid())
   description String
   amount      Decimal         @db.Decimal(10, 2)
-  category    ExpenseCategory
+  category    String? // Keep legacy for now
   dueDate     DateTime
   isPaid      Boolean         @default(false)
   paidAt      DateTime?       
@@ -191,6 +247,203 @@ model FixedExpense {
   businessId  String
   business    Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
   
+  categoryId  String?
+  categoryRel Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+}
+
+model AssistantConversation {
+  id          String                @id @default(uuid())
+  title       String?
+  memorySummary String?             @db.Text
+  memoryUpdatedAt DateTime?
+  lastCompactedAt DateTime?
+  isDeleted   Boolean               @default(false)
+  deletedAt   DateTime?
+  businessId  String
+  business    Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    AssistantMessage[]
+  pendingActions AssistantPendingAction[]
+  auditLogs   AssistantAuditLog[]
+
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([businessId, userId, updatedAt])
+  @@index([businessId, userId, isDeleted, updatedAt])
+}
+
+model AssistantMessage {
+  id             String                 @id @default(uuid())
+  conversationId String
+  conversation   AssistantConversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           AssistantMessageRole
+  retentionClass AssistantRetentionClass @default(CONTEXTUAL)
+  content        String                 @db.Text
+  metaJson       Json?
+  createdAt      DateTime               @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model AssistantPendingAction {
+  id             String                  @id @default(uuid())
+  conversationId String
+  conversation   AssistantConversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  businessId     String
+  business       Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionType     AssistantActionType
+  payloadJson    Json
+  previewText    String                  @db.Text
+  status         AssistantActionStatus   @default(PENDING)
+  expiresAt      DateTime?
+  executedAt     DateTime?
+  createdAt      DateTime                @default(now())
+
+  @@index([conversationId, status, createdAt])
+  @@index([businessId, userId, status])
+}
+
+model AssistantAuditLog {
+  id             String                 @id @default(uuid())
+  businessId     String
+  business       Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversationId String?
+  conversation   AssistantConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  toolName       String
+  toolInputJson  Json?
+  toolResultJson Json?
+  entityType     String?
+  entityId       String?
+  status         AssistantAuditStatus   @default(SUCCESS)
+  createdAt      DateTime               @default(now())
+
+  @@index([businessId, userId, createdAt])
+  @@index([conversationId, createdAt])
+}
+
+enum CategoryType {
+  PRODUCT
+  EXPENSE
+}
+
+enum AssistantMessageRole {
+  USER
+  ASSISTANT
+  TOOL
+  SYSTEM
+}
+
+enum AssistantActionType {
+  CREATE_PRODUCT
+  ADJUST_STOCK
+  CREATE_EXPENSE
+  TOGGLE_CATEGORY_STATUS
+}
+
+enum AssistantActionStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  FAILED
+  EXECUTED
+}
+
+enum AssistantAuditStatus {
+  SUCCESS
+  ERROR
+}
+
+enum AssistantRetentionClass {
+  EPHEMERAL
+  CONTEXTUAL
+  IMPORTANT
+}
+
+enum AttributeType {
+  TEXT      // Texto libre largo
+  NUMBER    // Números enteros o decimales
+  BOOLEAN   // Si/No (Switch)
+  CHOICE    // Opciones predefinidas (Dropdown)
+  IMAGE     // Imagen cargada en la nube (Cloudinary)
+}
+
+model ProductCatalog {
+  id         String   @id @default(uuid())
+  productId  String   @unique
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  isPublic   Boolean  @default(false)
+  isDeleted  Boolean  @default(false)
+  
+  values     CatalogAttributeValue[]
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+model CatalogAttribute {
+  id         String   @id @default(uuid())
+  name       String   
+  type       AttributeType @default(TEXT)
+  isList     Boolean  @default(false)
+  
+  businessId String
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  options    CatalogAttributeOption[]
+  values     CatalogAttributeValue[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([businessId, name])
+}
+
+model CatalogAttributeOption {
+  id          String           @id @default(uuid())
+  attributeId String
+  attribute   CatalogAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  
+  value       String           
+
+  selectedInValues CatalogAttributeValue[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([attributeId, value])
+}
+
+model CatalogAttributeValue {
+  id                 String         @id @default(uuid())
+  productCatalogId   String
+  productCatalog     ProductCatalog @relation(fields: [productCatalogId], references: [id], onDelete: Cascade)
+  
+  attributeId        String
+  attribute          CatalogAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  
+  value              String?        @db.Text
+  
+  optionId           String?        
+  option             CatalogAttributeOption? @relation(fields: [optionId], references: [id], onDelete: SetNull)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([productCatalogId, attributeId])
 }
