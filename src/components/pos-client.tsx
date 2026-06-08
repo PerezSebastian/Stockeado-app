@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useDebounce } from "use-debounce";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,10 @@ export function POSClient({ products }: POSClientProps) {
     const [paymentMethod, setPaymentMethod] = useState("Efectivo");
     const [notes, setNotes] = useState("");
     const [loading, setLoading] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(40);
+
+    const observerRef = useRef<IntersectionObserver | null>(null);
+    const triggerRef = useRef<HTMLDivElement | null>(null);
 
     // Filtrado en cliente
     const [debouncedSearch] = useDebounce(search, 300);
@@ -72,10 +76,43 @@ export function POSClient({ products }: POSClientProps) {
         );
     }, [products, debouncedSearch]);
 
+    // Resetear contador al buscar para no renderizar de más
+    useEffect(() => {
+        setVisibleCount(40);
+    }, [debouncedSearch]);
+
+    // IntersectionObserver para carga progresiva robusta (funciona en mobile y desktop)
+    useEffect(() => {
+        if (observerRef.current) observerRef.current.disconnect();
+
+        observerRef.current = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting) {
+                    setVisibleCount((prev) => Math.min(prev + 40, filtered.length));
+                }
+            },
+            { rootMargin: "150px" } // Carga un poco antes de llegar para mejor UX
+        );
+
+        if (triggerRef.current) {
+            observerRef.current.observe(triggerRef.current);
+        }
+
+        return () => {
+            if (observerRef.current) observerRef.current.disconnect();
+        };
+    }, [filtered.length, products.length]);
+
     const addToCart = (product: Product) => {
         setCart((curr) => {
             const existing = curr.find((p) => p.id === product.id);
             if (existing) {
+                if (existing.qty >= product.stock) {
+                    toast.warning(`Solo hay ${product.stock} unidades disponibles de ${product.name}`, {
+                        id: `max-stock-${product.id}`,
+                    });
+                    return curr;
+                }
                 return curr.map((p) =>
                     p.id === product.id ? { ...p, qty: p.qty + 1 } : p
                 );
@@ -102,18 +139,63 @@ export function POSClient({ products }: POSClientProps) {
 
     const updateQty = (id: string, delta: number) => {
         setCart((curr) =>
-            curr.map((p) =>
-                p.id === id ? { ...p, qty: Math.max(1, p.qty + delta) } : p
-            )
+            curr.map((p) => {
+                if (p.id !== id) return p;
+                const nextQty = p.qty + delta;
+                if (nextQty > p.stock) {
+                    toast.warning(`Solo hay ${p.stock} unidades disponibles de ${p.name}`, {
+                        id: `max-stock-${p.id}`,
+                    });
+                    return { ...p, qty: p.stock };
+                }
+                if (nextQty < 1) return p;
+                return { ...p, qty: nextQty };
+            })
         );
+    };
+
+    const handleQtyChange = (id: string, value: string) => {
+        if (value === "") {
+            setCart((curr) =>
+                curr.map((p) => (p.id === id ? { ...p, qty: "" as any } : p))
+            );
+            return;
+        }
+
+        const parsed = parseInt(value, 10);
+        if (isNaN(parsed)) return;
+
+        setCart((curr) =>
+            curr.map((p) => {
+                if (p.id !== id) return p;
+                if (parsed > p.stock) {
+                    toast.warning(`Solo hay ${p.stock} unidades disponibles de ${p.name}`, {
+                        id: `max-stock-${p.id}`,
+                    });
+                    return { ...p, qty: p.stock };
+                }
+                if (parsed < 1) {
+                    return { ...p, qty: 1 };
+                }
+                return { ...p, qty: parsed };
+            })
+        );
+    };
+
+    const handleQtyBlur = (id: string, qty: number, stock: number) => {
+        if (!qty || qty < 1) {
+            setCart((curr) =>
+                curr.map((p) => (p.id === id ? { ...p, qty: 1 } : p))
+            );
+        }
     };
 
     const removeItem = (id: string) => {
         setCart((curr) => curr.filter((p) => p.id !== id));
     };
 
-    const total = cart.reduce((acc, item) => acc + item.price * item.qty, 0);
-    const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
+    const total = cart.reduce((acc, item) => acc + item.price * (item.qty || 0), 0);
+    const cartCount = cart.reduce((acc, item) => acc + (item.qty || 0), 0);
 
     const handleCheckout = async () => {
         setLoading(true);
@@ -145,16 +227,14 @@ export function POSClient({ products }: POSClientProps) {
     };
 
     return (
-        <div className="flex flex-col gap-6 h-full lg:h-[calc(100vh-8rem)]">
-            <div>
+        <div className="flex flex-col lg:grid lg:grid-cols-[1fr_380px] lg:grid-rows-[auto_1fr] gap-x-6 gap-y-4 lg:gap-y-6 h-full lg:h-[calc(100vh-5rem)] lg:-mb-[calc(2rem+var(--assistant-launcher-safe-area-bottom,0px))]">
+            <div className="order-1 lg:col-start-1 lg:row-start-1">
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Punto de Venta</h1>
                 <p className="text-muted-foreground">Seleccioná los productos y registrá la venta.</p>
             </div>
 
-            <div className="flex flex-col-reverse lg:flex-row gap-6 flex-1 min-h-0">
-
-                {/* ── Panel Izquierdo: Catálogo ── */}
-                <div className="flex-1 flex flex-col space-y-4 min-w-0">
+            {/* ── Panel Izquierdo: Catálogo ── */}
+            <div className="order-3 lg:col-start-1 lg:row-start-2 flex-1 flex flex-col space-y-4 min-w-0 min-h-0">
 
                 <div className="flex flex-col gap-2 sm:flex-row">
                     <div className="relative w-full">
@@ -179,8 +259,10 @@ export function POSClient({ products }: POSClientProps) {
                         <p className="text-sm">No se encontraron productos</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto pr-1 pb-4">
-                        {filtered.map((p) => {
+                    <div 
+                        className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 overflow-y-auto pr-1 pb-4"
+                    >
+                        {filtered.slice(0, visibleCount).map((p) => {
                             const outOfStock = p.stock <= 0;
                             const inCart = cart.find((c) => c.id === p.id);
                             return (
@@ -221,12 +303,16 @@ export function POSClient({ products }: POSClientProps) {
                                 </Card>
                             );
                         })}
+                        {/* Trigger invisible para IntersectionObserver */}
+                        {visibleCount < filtered.length && (
+                            <div ref={triggerRef} className="col-span-full h-4 w-full" />
+                        )}
                     </div>
                 )}
             </div>
 
             {/* ── Panel Derecho: Ticket ── */}
-            <div className="w-full lg:w-[380px] flex flex-col bg-background rounded-xl border border-border overflow-hidden shadow-sm shrink-0 max-h-[340px] lg:max-h-none">
+            <div className="order-2 lg:col-start-2 lg:row-start-1 lg:row-span-2 w-full lg:w-[380px] flex flex-col bg-background rounded-xl border border-border overflow-hidden shadow-sm shrink-0 max-h-[340px] lg:max-h-none lg:mb-12">
                 {/* Header ticket */}
                 <div className="p-4 bg-surface-subtle/80 border-b border-border flex justify-between items-center">
                     <h2 className="font-semibold text-foreground tracking-tight flex items-center gap-2">
@@ -261,25 +347,33 @@ export function POSClient({ products }: POSClientProps) {
                                 </div>
                                 <div className="flex flex-col items-end justify-between shrink-0">
                                     <span className="font-bold text-sm text-foreground">
-                                        ${(item.price * item.qty).toLocaleString("es-AR")}
+                                        ${(item.price * (item.qty || 0)).toLocaleString("es-AR")}
                                     </span>
-                                    <div className="flex items-center gap-1 mt-1.5">
+                                    <div className="flex items-center gap-1.5 mt-1.5">
                                         <Button
                                             variant="outline"
                                             size="icon"
                                             className="h-6 w-6 rounded border-border"
                                             onClick={() => updateQty(item.id, -1)}
+                                            disabled={item.qty <= 1}
                                         >
                                             <Minus className="h-3 w-3" />
                                         </Button>
-                                        <span className="text-sm font-semibold w-5 text-center text-foreground">
-                                            {item.qty}
-                                        </span>
+                                        <input
+                                            type="number"
+                                            value={item.qty === 0 ? "" : item.qty}
+                                            onChange={(e) => handleQtyChange(item.id, e.target.value)}
+                                            onBlur={() => handleQtyBlur(item.id, item.qty, item.stock)}
+                                            className="h-6 w-10 text-center text-xs font-semibold bg-surface-subtle border border-border rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            min={1}
+                                            max={item.stock}
+                                        />
                                         <Button
                                             variant="outline"
                                             size="icon"
                                             className="h-6 w-6 rounded border-border"
                                             onClick={() => updateQty(item.id, 1)}
+                                            disabled={item.qty >= item.stock}
                                         >
                                             <Plus className="h-3 w-3" />
                                         </Button>
@@ -406,7 +500,6 @@ export function POSClient({ products }: POSClientProps) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            </div>
         </div>
     );
 }
